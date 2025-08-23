@@ -1,3 +1,10 @@
+using CosmoChess.Domain;
+using CosmoChess.Domain.Repositories;
+using CosmoChess.Infrastructure.Engines;
+using CosmoChess.Infrastructure.Persistence;
+using CosmoChess.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +13,16 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<CosmoChessDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IGameRepository, GameRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddSingleton<IEngineService, StockfishEngine>();
+
+
+
 
 var app = builder.Build();
 

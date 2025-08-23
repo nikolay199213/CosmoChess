@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CosmoChess.Domain.Repositories;
+﻿using CosmoChess.Domain.Repositories;
 using CosmoChess.Infrastructure.Persistence;
 
 namespace CosmoChess.Infrastructure.Repositories

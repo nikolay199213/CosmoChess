@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CosmoChess.Domain.Entities;
 
 namespace CosmoChess.Domain.Repositories
 {
     public interface IGameRepository
     {
+        public Task Save(Game  game);
     }
 }
