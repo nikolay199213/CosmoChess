@@ -1,5 +1,5 @@
 ﻿using CosmoChess.Application.Commands;
-using CosmoChess.Domain;
+using CosmoChess.Domain.Interface.Engines;
 using MediatR;
 
 namespace CosmoChess.Application.Handlers

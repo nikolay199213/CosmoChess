@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Threading.Channels;
-using CosmoChess.Domain;
+using CosmoChess.Domain.Interface.Engines;
 
 namespace CosmoChess.Infrastructure.Engines
 {

@@ -1,4 +1,5 @@
 ﻿using CosmoChess.Domain.Entities;
+using CosmoChess.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace CosmoChess.Infrastructure.Persistence
@@ -9,7 +10,7 @@ namespace CosmoChess.Infrastructure.Persistence
         public DbSet<Game> Games { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfiguration(new UserConfiguration());
         }
     }
 }

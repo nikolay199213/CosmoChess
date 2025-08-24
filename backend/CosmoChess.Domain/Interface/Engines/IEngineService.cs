@@ -1,4 +1,4 @@
-﻿namespace CosmoChess.Domain
+﻿namespace CosmoChess.Domain.Interface.Engines
 {
     public interface IEngineService
     {
