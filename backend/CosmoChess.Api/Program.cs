@@ -1,12 +1,14 @@
 using CosmoChess.Api;
 using CosmoChess.Application.Handlers;
-using CosmoChess.Domain.Interface.Engines;
-using CosmoChess.Infrastructure.Engines;
-using CosmoChess.Infrastructure.Repositories;
-using System.Reflection;
 using CosmoChess.Domain.Interface.Auth;
+using CosmoChess.Domain.Interface.Engines;
 using CosmoChess.Domain.Interface.Repositories;
 using CosmoChess.Infrastructure.Auth;
+using CosmoChess.Infrastructure.Engines;
+using CosmoChess.Infrastructure.Persistence;
+using CosmoChess.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,5 +75,11 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<CosmoChessDbContext>();
+    await context.Database.MigrateAsync();
+}
 
 app.Run();
