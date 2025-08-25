@@ -9,6 +9,12 @@ namespace CosmoChess.Api.Controllers
     [Route("api/[controller]")]
     public class GamesController(IMediator mediator) : ControllerBase
     {
+        [HttpPost("create")]
+        public async Task<IActionResult> Create([FromBody] CreateGameCommand command)
+        {
+            var gameId = await mediator.Send(command);
+            return Ok(gameId);
+        }
 
         [HttpPost("analyze")]
         public async Task<IActionResult> Analyze([FromBody] AnalyzePositionDto dto, CancellationToken cancellationToken)

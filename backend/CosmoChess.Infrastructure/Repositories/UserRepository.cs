@@ -1,5 +1,5 @@
 ﻿using CosmoChess.Domain.Entities;
-using CosmoChess.Domain.Repositories;
+using CosmoChess.Domain.Interface.Repositories;
 using CosmoChess.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

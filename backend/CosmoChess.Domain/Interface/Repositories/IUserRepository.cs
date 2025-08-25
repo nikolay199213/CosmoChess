@@ -1,6 +1,6 @@
 ﻿using CosmoChess.Domain.Entities;
 
-namespace CosmoChess.Domain.Repositories
+namespace CosmoChess.Domain.Interface.Repositories
 {
     public interface IUserRepository
     {

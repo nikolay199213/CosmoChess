@@ -1,6 +1,6 @@
 ﻿using CosmoChess.Application.Commands;
 using CosmoChess.Domain.Interface.Auth;
-using CosmoChess.Domain.Repositories;
+using CosmoChess.Domain.Interface.Repositories;
 using MediatR;
 
 namespace CosmoChess.Application.Handlers

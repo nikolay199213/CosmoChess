@@ -1,11 +1,11 @@
 using CosmoChess.Api;
 using CosmoChess.Application.Handlers;
 using CosmoChess.Domain.Interface.Engines;
-using CosmoChess.Domain.Repositories;
 using CosmoChess.Infrastructure.Engines;
 using CosmoChess.Infrastructure.Repositories;
 using System.Reflection;
 using CosmoChess.Domain.Interface.Auth;
+using CosmoChess.Domain.Interface.Repositories;
 using CosmoChess.Infrastructure.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
