@@ -28,9 +28,11 @@ namespace CosmoChess.Domain.Entities
         public Guid WhitePlayerId { get; private set; }
         public Guid BlackPlayerId { get; private set; }
 
-        public void MakeMove(GameMove move)
+        public void MakeMove(Guid userId, string move, string newFen)
         {
-            _moves.Add(move);
+
+            var gameMove = new GameMove(Id, userId, move, newFen, DateTime.Now);
+            _moves.Add(gameMove);
         }
     }
 }

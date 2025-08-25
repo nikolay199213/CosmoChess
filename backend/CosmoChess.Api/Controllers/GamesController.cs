@@ -16,6 +16,13 @@ namespace CosmoChess.Api.Controllers
             return Ok(gameId);
         }
 
+        [HttpPost("join")]
+        public async Task<IActionResult> Join([FromBody] JoinGameCommand command)
+        {
+            await mediator.Send(command);
+            return Ok();
+        }
+
         [HttpPost("analyze")]
         public async Task<IActionResult> Analyze([FromBody] AnalyzePositionDto dto, CancellationToken cancellationToken)
         {
