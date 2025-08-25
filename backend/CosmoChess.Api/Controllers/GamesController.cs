@@ -22,6 +22,12 @@ namespace CosmoChess.Api.Controllers
             await mediator.Send(command);
             return Ok();
         }
+        [HttpPost("move")]
+        public async Task<IActionResult> Move([FromBody] MakeMoveCommand command)
+        {
+            await mediator.Send(command);
+            return Ok();
+        }
 
         [HttpPost("analyze")]
         public async Task<IActionResult> Analyze([FromBody] AnalyzePositionDto dto, CancellationToken cancellationToken)
