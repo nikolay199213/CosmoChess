@@ -18,6 +18,37 @@ services:
       - cosmochess-network
     restart: unless-stopped
 
+  # Backend API
+  backend:
+    build:
+      context: ./backend/CosmoChess.Api
+      dockerfile: Dockerfile
+    container_name: cosmochess-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=cosmochess;Username=postgres;Password=password123
+    ports:
+      - "5000:80"
+    depends_on:
+      - postgres
+    networks:
+      - cosmochess-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cosmochess-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - cosmochess-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
 

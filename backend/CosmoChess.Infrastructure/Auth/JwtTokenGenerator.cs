@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+﻿﻿using System.Security.Claims;
 using CosmoChess.Domain;
 using CosmoChess.Domain.Interface.Auth;
 using System.Text;
@@ -21,8 +21,8 @@ namespace CosmoChess.Infrastructure.Auth
             };
 
             var token = new JwtSecurityToken(
-                issuer: "CosmoChess",
-                audience: "CosmoChess",
+                issuer: config.JwtIssuer,
+                audience: config.JwtAudience,
                 claims: claims,
                 expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: credentials

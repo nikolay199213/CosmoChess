@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿﻿﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace CosmoChess.Domain
 {
@@ -6,8 +6,8 @@ namespace CosmoChess.Domain
     {
         public string JwtKey { get; set; } = string.Empty;
         public string DatabaseConnectionString { get; set; } = string.Empty;
-        public string JwtIssuer { get; set; } = "MyAuthServer";
-        public string JwtAudience { get; set; } = "MyAuthServer";
+        public string JwtIssuer { get; set; } = "CosmoChess";
+        public string JwtAudience { get; set; } = "CosmoChess";
 
         public bool IsDevelopment { get; set; }
 
@@ -15,9 +15,12 @@ namespace CosmoChess.Domain
         {
             var config = new AppConfiguration
             {
-                JwtKey = GetRequiredEnvVar("JWT_KEY"),
-                DatabaseConnectionString = GetRequiredEnvVar("DB_CONNECTION_STRING"),
-                IsDevelopment = GetEnvVar("ASPNETCORE_ENVIRONMENT") == "Development"
+                JwtKey = GetEnvVar("JWT_KEY", "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"),
+                DatabaseConnectionString = GetEnvVar("DB_CONNECTION_STRING", 
+                    "Host=localhost;Database=cosmochess;Username=postgres;Password=password123"),
+                IsDevelopment = GetEnvVar("ASPNETCORE_ENVIRONMENT") == "Development",
+                JwtIssuer = GetEnvVar("JWT_ISSUER", "CosmoChess"),
+                JwtAudience = GetEnvVar("JWT_AUDIENCE", "CosmoChess")
             };
             return config;
         }

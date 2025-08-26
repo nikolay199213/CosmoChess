@@ -1,6 +1,7 @@
-﻿using CosmoChess.Application.Commands;
+﻿﻿using CosmoChess.Application.Commands;
 using CosmoChess.Domain.Entities;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CosmoChess.Api.Controllers
@@ -8,6 +9,7 @@ namespace CosmoChess.Api.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class GamesController(IMediator mediator) : ControllerBase
     {
         [HttpGet("wait-join")]
