@@ -2,6 +2,7 @@
 {
     public enum GameResult
     {
+        WaitJoin,
         InProgress,
         WhiteWins,
         BlackWins,

@@ -11,7 +11,7 @@ namespace CosmoChess.Domain.Entities
 
         private readonly List<GameMove> _moves = [];
         public GameType GameType { get; private set; }
-        public GameResult GameResult { get; private set; } = GameResult.InProgress;
+        public GameResult GameResult { get; private set; } = GameResult.WaitJoin;
         public GameEndReason EndReason { get; private set; } = GameEndReason.None;
         public string CurrentFen { get; private set; } = InitialFen;
 

@@ -1,4 +1,5 @@
 ﻿using CosmoChess.Application.Commands;
+using CosmoChess.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,13 @@ namespace CosmoChess.Api.Controllers
     [Route("api/[controller]")]
     public class GamesController(IMediator mediator) : ControllerBase
     {
+        [HttpGet("wait-join")]
+        public async Task<List<Game>> GetGamesForJoin()
+        {
+            var games = await mediator.Send(new GetGamesWaitJoinQuery());
+            return games;
+        }
+
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] CreateGameCommand command)
         {

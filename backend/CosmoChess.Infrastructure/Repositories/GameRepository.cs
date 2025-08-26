@@ -35,8 +35,17 @@ namespace CosmoChess.Infrastructure.Repositories
                .Take(take)
                .ToListAsync(cancellationToken);
         }
+        public async Task<IEnumerable<Game>> GetByGameResult(GameResult gameResult, int skip = 0, int take = 10, CancellationToken cancellationToken = default)
+        {
+           return await dbContext.Games
+               .Where(g => g.GameResult == gameResult)
+               .OrderByDescending(g => g.StartedAt)
+               .Skip(skip)
+               .Take(take)
+               .ToListAsync(cancellationToken);
+        }
 
-        public async Task<IEnumerable<Game>> GetByUserI(Guid userId, int skip = 0, int take = 10, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<Game>> GetByUserId(Guid userId, int skip = 0, int take = 10, CancellationToken cancellationToken = default)
         {
             return await dbContext.Games
                 .Where(g => g.WhitePlayerId == userId || g.BlackPlayerId == userId)
