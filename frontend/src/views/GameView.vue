@@ -216,7 +216,8 @@ export default {
       this.suggestion = ''
 
       try {
-        const result = await gameService.analyzePosition(this.chess.fen(), 10)
+        // Using depth 5 for faster analysis (was 10, which was very slow)
+        const result = await gameService.analyzePosition(this.chess.fen(), 5)
         if (result.success) {
           this.suggestion = result.bestMove
         } else {

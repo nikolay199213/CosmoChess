@@ -44,7 +44,11 @@ namespace CosmoChess.Infrastructure.Engines
 
             await _queue.Writer.WriteAsync(request, cancellationToken);
 
-            await using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            // Add timeout of 30 seconds to prevent hanging
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+            await using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
             {
                 return await tcs.Task;
             }

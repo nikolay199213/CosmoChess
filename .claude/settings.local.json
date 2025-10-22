@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run serve)",
+      "Bash(timeout 5 npm run serve)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
