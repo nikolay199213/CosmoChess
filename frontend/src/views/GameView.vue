@@ -20,26 +20,11 @@
 
     <div class="game-board">
       <div class="chessboard-container">
-        <div class="board">
-          <div v-for="(row, rowIndex) in board" :key="rowIndex" class="board-row">
-            <div 
-              v-for="(square, colIndex) in row" 
-              :key="colIndex"
-              class="board-square"
-              :class="{
-                'light-square': (rowIndex + colIndex) % 2 === 0,
-                'dark-square': (rowIndex + colIndex) % 2 === 1,
-                'selected': isSelected(rowIndex, colIndex),
-                'valid-move': isValidMove(rowIndex, colIndex)
-              }"
-              @click="onSquareClick(rowIndex, colIndex)"
-            >
-              <span v-if="square" class="piece" :class="getPieceClass(square)">
-                {{ getPieceSymbol(square) }}
-              </span>
-            </div>
-          </div>
-        </div>
+        <TheChessboard
+          :board-config="boardConfig"
+          @board-created="(api) => (boardAPI = api)"
+          @move="onMove"
+        />
       </div>
       
       <div class="game-sidebar">
@@ -71,11 +56,16 @@
 
 <script>
 import { Chess } from 'chess.js'
+import { TheChessboard } from 'vue3-chessboard'
+import 'vue3-chessboard/style.css'
 import { gameService } from '../services/gameService'
 import { authService } from '../services/authService'
 
 export default {
   name: 'GameView',
+  components: {
+    TheChessboard
+  },
   props: {
     gameId: {
       type: String,
@@ -86,17 +76,31 @@ export default {
     return {
       game: null,
       chess: new Chess(),
-      board: [],
+      boardAPI: null,
       error: '',
       analyzing: false,
       suggestion: '',
       moveHistory: [],
-      loading: true,
-      selectedSquare: null,
-      validMoves: []
+      loading: true
     }
   },
   computed: {
+    boardConfig() {
+      return {
+        fen: this.chess.fen(),
+        orientation: 'white',
+        movable: {
+          free: false,
+          color: this.chess.turn() === 'w' ? 'white' : 'black',
+          dests: this.possibleMoves()
+        },
+        animation: {
+          enabled: true,
+          duration: 200
+        }
+      }
+    },
+
     gameStatus() {
       if (this.chess.isGameOver()) {
         if (this.chess.isCheckmate()) {
@@ -132,7 +136,6 @@ export default {
     async initializeGame() {
       try {
         this.chess.reset()
-        this.updateBoard()
         this.loading = false
       } catch (error) {
         this.error = 'Failed to initialize game'
@@ -140,71 +143,53 @@ export default {
       }
     },
 
-    updateBoard() {
-      const board = this.chess.board()
-      this.board = board.map(row => 
-        row.map(square => square ? square : null)
-      )
-    },
+    possibleMoves() {
+      const dests = new Map()
+      const moves = this.chess.moves({ verbose: true })
 
-    onSquareClick(row, col) {
-      if (!this.isPlayerTurn) return
-
-      const square = this.getSquareNotation(row, col)
-      
-      if (this.selectedSquare === null) {
-        // First click - select piece
-        const piece = this.board[row][col]
-        if (piece && piece.color === this.chess.turn()) {
-          this.selectedSquare = { row, col }
-          this.validMoves = this.chess.moves({ 
-            square: square, 
-            verbose: true 
-          }).map(move => this.parseSquare(move.to))
+      moves.forEach(move => {
+        if (!dests.has(move.from)) {
+          dests.set(move.from, [])
         }
-      } else {
-        // Second click - try to move
-        const from = this.getSquareNotation(this.selectedSquare.row, this.selectedSquare.col)
-        const to = square
-        
-        this.makeMove(from, to)
-        this.selectedSquare = null
-        this.validMoves = []
-      }
+        dests.get(move.from).push(move.to)
+      })
+
+      return dests
     },
 
-    async makeMove(from, to) {
+    onMove(move) {
       this.error = ''
 
       try {
-        const move = this.chess.move({
-          from: from,
-          to: to,
+        const chessMove = this.chess.move({
+          from: move.from,
+          to: move.to,
           promotion: 'q'
         })
 
-        if (move === null) {
+        if (chessMove === null) {
           this.error = 'Invalid move'
           return
         }
 
-        this.moveHistory.push(move.san)
-        this.updateBoard()
+        this.moveHistory.push(chessMove.san)
 
         // Make the move on the backend
-        const result = await gameService.makeMove(
+        gameService.makeMove(
           this.gameId,
-          move.san,
+          chessMove.san,
           this.chess.fen()
-        )
-
-        if (!result.success) {
-          // Undo the move
-          this.chess.undo()
-          this.moveHistory.pop()
-          this.updateBoard()
-          this.error = result.error
-        }
+        ).then(result => {
+          if (!result.success) {
+            // Undo the move
+            this.chess.undo()
+            this.moveHistory.pop()
+            this.error = result.error
+          }
+        }).catch(error => {
+          this.error = 'Failed to make move'
+          console.error('Move error:', error)
+        })
       } catch (error) {
         this.error = 'Failed to make move'
         console.error('Move error:', error)
@@ -229,42 +214,6 @@ export default {
       } finally {
         this.analyzing = false
       }
-    },
-
-    getSquareNotation(row, col) {
-      const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-      const ranks = ['8', '7', '6', '5', '4', '3', '2', '1']
-      return files[col] + ranks[row]
-    },
-
-    parseSquare(square) {
-      const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-      const ranks = ['8', '7', '6', '5', '4', '3', '2', '1']
-      const col = files.indexOf(square[0])
-      const row = ranks.indexOf(square[1])
-      return { row, col }
-    },
-
-    isSelected(row, col) {
-      return this.selectedSquare && 
-             this.selectedSquare.row === row && 
-             this.selectedSquare.col === col
-    },
-
-    isValidMove(row, col) {
-      return this.validMoves.some(move => move.row === row && move.col === col)
-    },
-
-    getPieceClass(piece) {
-      return `piece-${piece.color}${piece.type}`
-    },
-
-    getPieceSymbol(piece) {
-      const symbols = {
-        'wk': '♔', 'wq': '♕', 'wr': '♖', 'wb': '♗', 'wn': '♘', 'wp': '♙',
-        'bk': '♚', 'bq': '♛', 'br': '♜', 'bb': '♝', 'bn': '♞', 'bp': '♟'
-      }
-      return symbols[piece.color + piece.type] || ''
     },
 
     goBack() {
@@ -334,65 +283,8 @@ export default {
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.board {
-  width: 400px;
-  height: 400px;
+  max-width: 600px;
   margin: 0 auto;
-  border: 2px solid #8b4513;
-}
-
-.board-row {
-  display: flex;
-  height: 50px;
-}
-
-.board-square {
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  transition: background-color 0.2s;
-}
-
-.light-square {
-  background-color: #f0d9b5;
-}
-
-.dark-square {
-  background-color: #b58863;
-}
-
-.board-square:hover {
-  opacity: 0.8;
-}
-
-.board-square.selected {
-  background-color: #ffff00 !important;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-}
-
-.board-square.valid-move {
-  background-color: #90ee90 !important;
-}
-
-.board-square.valid-move::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: rgba(0, 128, 0, 0.7);
-}
-
-.piece {
-  font-size: 32px;
-  user-select: none;
-  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
 }
 
 .game-sidebar {
