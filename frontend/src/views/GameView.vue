@@ -3,6 +3,9 @@
     <div class="game-header">
       <h1>Game #{{ gameId.substring(0, 8) }}</h1>
       <div class="game-info">
+        <span class="connection-status" :class="connectionStatusClass">
+          {{ connectionStatus }}
+        </span>
         <span class="game-status">{{ gameStatus }}</span>
         <button @click="analyzePosition" class="btn btn-primary" :disabled="analyzing">
           {{ analyzing ? 'Analyzing...' : 'Analyze' }}
@@ -60,6 +63,7 @@ import { TheChessboard } from 'vue3-chessboard'
 import 'vue3-chessboard/style.css'
 import { gameService } from '../services/gameService'
 import { authService } from '../services/authService'
+import { gameConnectionService } from '../services/gameConnectionService'
 import { markRaw } from 'vue'
 
 export default {
@@ -83,7 +87,8 @@ export default {
       suggestion: '',
       moveHistory: [],
       loading: true,
-      currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' // Track FEN manually
+      currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', // Track FEN manually
+      connectionStatus: 'Disconnected'
     }
   },
   computed: {
@@ -135,26 +140,172 @@ export default {
     isPlayerTurn() {
       const userId = authService.getUserId()
       if (!this.game || !userId) return true // Allow moves for demo
-      
+
       const isWhite = this.game.creatorId === userId
       const currentTurn = this.chess.turn()
-      
+
       return (isWhite && currentTurn === 'w') || (!isWhite && currentTurn === 'b')
+    },
+
+    connectionStatusClass() {
+      return {
+        'status-connected': this.connectionStatus === 'Connected',
+        'status-connecting': this.connectionStatus === 'Connecting' || this.connectionStatus === 'Reconnecting',
+        'status-disconnected': this.connectionStatus === 'Disconnected'
+      }
     }
   },
   async mounted() {
     await this.initializeGame()
+    await this.setupRealtimeConnection()
+  },
+  async unmounted() {
+    await this.cleanupRealtimeConnection()
   },
   methods: {
     async initializeGame() {
       try {
-        this.chess.reset()
-        this.currentFen = this.chess.fen()
+        // Load game state from backend
+        const result = await gameService.getGameById(this.gameId)
+
+        if (result.success && result.game) {
+          this.game = result.game
+
+          // If game has a FEN, use it; otherwise use initial position
+          const fenToLoad = result.game.currentFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+
+          this.chess.load(fenToLoad)
+          this.currentFen = fenToLoad
+
+          // TODO: Load move history if available
+          // if (result.game.moves) {
+          //   this.moveHistory = result.game.moves.map(m => m.move)
+          // }
+
+          console.log('Game loaded:', this.game)
+        } else {
+          // If game doesn't exist yet or failed to load, start with initial position
+          this.chess.reset()
+          this.currentFen = this.chess.fen()
+          console.warn('Failed to load game, starting with initial position')
+        }
+
         this.loading = false
       } catch (error) {
         this.error = 'Failed to initialize game'
         console.error('Game initialization error:', error)
+
+        // Fallback to initial position
+        this.chess.reset()
+        this.currentFen = this.chess.fen()
+        this.loading = false
       }
+    },
+
+    async setupRealtimeConnection() {
+      try {
+        console.log('Setting up real-time connection for game:', this.gameId)
+
+        // Connect to SignalR hub
+        await gameConnectionService.connect()
+        this.connectionStatus = gameConnectionService.getConnectionState()
+
+        // Join this game's room
+        await gameConnectionService.joinGame(this.gameId)
+
+        // Listen for move updates from other players
+        gameConnectionService.on('moveReceived', this.handleMoveReceived)
+
+        // Listen for game state changes
+        gameConnectionService.on('gameStateChanged', this.handleGameStateChanged)
+
+        // Listen for player join/leave events
+        gameConnectionService.on('playerJoined', this.handlePlayerJoined)
+        gameConnectionService.on('playerLeft', this.handlePlayerLeft)
+
+        console.log('Real-time connection established')
+      } catch (error) {
+        console.error('Failed to setup real-time connection:', error)
+        this.error = 'Failed to connect to game server. Moves may not sync in real-time.'
+      }
+    },
+
+    async cleanupRealtimeConnection() {
+      try {
+        console.log('Cleaning up real-time connection')
+
+        // Remove event listeners
+        gameConnectionService.off('moveReceived', this.handleMoveReceived)
+        gameConnectionService.off('gameStateChanged', this.handleGameStateChanged)
+        gameConnectionService.off('playerJoined', this.handlePlayerJoined)
+        gameConnectionService.off('playerLeft', this.handlePlayerLeft)
+
+        // Leave game room
+        if (this.gameId) {
+          await gameConnectionService.leaveGame(this.gameId)
+        }
+
+        console.log('Real-time connection cleaned up')
+      } catch (error) {
+        console.error('Error cleaning up connection:', error)
+      }
+    },
+
+    handleMoveReceived(data) {
+      console.log('Received move from server:', data)
+
+      const currentUserId = authService.getUserId()
+
+      // Don't apply the move if it's from the current user (already applied locally)
+      if (data.userId === currentUserId) {
+        console.log('Ignoring own move')
+        return
+      }
+
+      try {
+        // Apply the move from the server
+        // Option 1: If server sends move in SAN format
+        if (data.move) {
+          const move = this.chess.move(data.move)
+          if (move) {
+            this.moveHistory.push(move.san)
+          }
+        }
+
+        // Option 2: If server sends new FEN (more reliable)
+        if (data.newFen) {
+          this.chess.load(data.newFen)
+        }
+
+        // Update the board
+        this.currentFen = this.chess.fen()
+
+        console.log('Move applied successfully')
+      } catch (error) {
+        console.error('Error applying received move:', error)
+        this.error = 'Failed to apply opponent\'s move'
+      }
+    },
+
+    handleGameStateChanged(data) {
+      console.log('Game state changed:', data)
+      // Handle game state changes (e.g., game ended, draw offered, etc.)
+      if (data.gameResult) {
+        // Update game result display
+      }
+    },
+
+    handlePlayerJoined(data) {
+      console.log('Player joined:', data)
+      // Show notification that opponent joined
+      if (this.game) {
+        this.game.blackPlayerId = data.playerId
+      }
+    },
+
+    handlePlayerLeft(data) {
+      console.log('Player left:', data)
+      // Show notification that opponent left
     },
 
     onMove(move) {
@@ -350,5 +501,27 @@ export default {
 
 .game-controls .btn {
   width: 100%;
+}
+
+.connection-status {
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.status-connected {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-connecting {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-disconnected {
+  background-color: #f8d7da;
+  color: #721c24;
 }
 </style>

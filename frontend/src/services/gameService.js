@@ -102,13 +102,26 @@ class GameService {
         Fen: fen,
         Depth: depth
       })
-      
+
       return { success: true, bestMove: response.data.bestMove }
     } catch (error) {
       console.error('Error analyzing position:', error)
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Failed to analyze position' 
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to analyze position'
+      }
+    }
+  }
+
+  async getGameById(gameId) {
+    try {
+      const response = await axios.get(`/games/${gameId}`)
+      return { success: true, game: response.data }
+    } catch (error) {
+      console.error('Error fetching game:', error)
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch game'
       }
     }
   }
