@@ -10,7 +10,9 @@ namespace CosmoChess.Infrastructure.Repositories
     {
         public async Task<Game?> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            return await dbContext.Games.FirstOrDefaultAsync(g=>g.Id == id, cancellationToken);
+            return await dbContext.Games
+                .Include(g => g.Moves)
+                .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
         }
 
         public async Task Update(Game game, CancellationToken cancellationToken = default)

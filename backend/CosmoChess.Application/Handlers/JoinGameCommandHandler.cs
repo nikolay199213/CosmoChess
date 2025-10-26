@@ -1,17 +1,11 @@
 ﻿using CosmoChess.Application.Commands;
 using CosmoChess.Domain.Interface.Repositories;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CosmoChess.Application.Handlers
 {
     public class JoinGameCommandHandler(IGameRepository repository) : IRequestHandler<JoinGameCommand, Unit>
     {
-
         public async Task<Unit> Handle(JoinGameCommand request, CancellationToken cancellationToken)
         {
             var game = await repository.GetById(request.GameId, cancellationToken);

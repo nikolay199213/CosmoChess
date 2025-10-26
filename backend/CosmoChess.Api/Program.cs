@@ -1,4 +1,5 @@
-using CosmoChess.Api;
+﻿using CosmoChess.Api;
+using CosmoChess.Api.Hubs;
 using CosmoChess.Application.Handlers;
 using CosmoChess.Domain.Interface.Auth;
 using CosmoChess.Domain.Interface.Engines;
@@ -21,6 +22,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<RegisterUserHandler>());
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true; // Для отладки
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+});
+
 
 builder.Services.AddCosmoChessDatabase();
 builder.Services.AddJwtAuthentication();
@@ -75,6 +83,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<GameHub>("/gameHub");
 
 using (var scope = app.Services.CreateScope())
 {

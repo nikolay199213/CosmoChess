@@ -37,6 +37,19 @@ namespace CosmoChess.Api
                                 .GetRequiredService<ILogger<Program>>();
                             logger.LogWarning("JWT authentication failed: {Error}", context.Exception.Message);
                             return Task.CompletedTask;
+                        },
+                        OnMessageReceived = context =>
+                        {
+                            // Allow SignalR to receive JWT token from query string
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/gameHub"))
+                            {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
                         }
                     };
                 });

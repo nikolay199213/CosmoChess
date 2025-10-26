@@ -10,6 +10,7 @@ namespace CosmoChess.Domain.Entities
         public DateTime StartedAt { get; private set; } = DateTime.UtcNow;
 
         private readonly List<GameMove> _moves = [];
+        public IReadOnlyCollection<GameMove> Moves => _moves.AsReadOnly();
         public GameType GameType { get; private set; }
         public GameResult GameResult { get; private set; } = GameResult.WaitJoin;
         public GameEndReason EndReason { get; private set; } = GameEndReason.None;
@@ -23,6 +24,7 @@ namespace CosmoChess.Domain.Entities
         public void Join(Guid blackPlayerId)
         {
             BlackPlayerId = blackPlayerId;
+            GameResult = GameResult.InProgress;
         }
 
         public Guid WhitePlayerId { get; private set; }
@@ -30,9 +32,24 @@ namespace CosmoChess.Domain.Entities
 
         public void MakeMove(Guid userId, string move, string newFen)
         {
+            // Validate that it's the player's turn
+            var isWhiteTurn = CurrentFen.Contains(" w ");
+            var isWhitePlayer = userId == WhitePlayerId;
+            var isBlackPlayer = userId == BlackPlayerId;
 
-            var gameMove = new GameMove(Id, userId, move, newFen, DateTime.Now);
+            if (isWhiteTurn && !isWhitePlayer)
+            {
+                throw new InvalidOperationException("It's white's turn");
+            }
+
+            if (!isWhiteTurn && !isBlackPlayer)
+            {
+                throw new InvalidOperationException("It's black's turn");
+            }
+
+            var gameMove = new GameMove(Id, userId, move, newFen, DateTime.UtcNow);
             _moves.Add(gameMove);
+            CurrentFen = newFen;
         }
     }
 }

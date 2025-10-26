@@ -5,7 +5,8 @@
       "Bash(timeout 5 npm run serve)",
       "Bash(npm install:*)",
       "Bash(npm run dev)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(dotnet build)"
     ],
     "deny": [],
     "ask": []
