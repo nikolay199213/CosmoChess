@@ -162,6 +162,14 @@ export default {
   async unmounted() {
     await this.cleanupRealtimeConnection()
   },
+  watch: {
+    currentFen(newFen) {
+      // Update board position through API when FEN changes
+      if (this.boardAPI) {
+        this.boardAPI.setPosition(newFen)
+      }
+    }
+  },
   methods: {
     async initializeGame() {
       try {
@@ -177,10 +185,11 @@ export default {
           this.chess.load(fenToLoad)
           this.currentFen = fenToLoad
 
-          // TODO: Load move history if available
-          // if (result.game.moves) {
-          //   this.moveHistory = result.game.moves.map(m => m.move)
-          // }
+          // Load move history if available
+          if (result.game.moves && result.game.moves.length > 0) {
+            this.moveHistory = result.game.moves.map(m => m.move)
+            console.log('Loaded move history:', this.moveHistory)
+          }
 
           console.log('Game loaded:', this.game)
         } else {
@@ -255,6 +264,8 @@ export default {
       console.log('Received move from server:', data)
 
       const currentUserId = authService.getUserId()
+      console.log('Current user ID:', currentUserId)
+      console.log('Move from user ID:', data.userId)
 
       // Don't apply the move if it's from the current user (already applied locally)
       if (data.userId === currentUserId) {
@@ -263,24 +274,27 @@ export default {
       }
 
       try {
-        // Apply the move from the server
-        // Option 1: If server sends move in SAN format
-        if (data.move) {
+        // Use FEN as the source of truth (most reliable)
+        if (data.newFen) {
+          console.log('Loading FEN from server:', data.newFen)
+          this.chess.load(data.newFen)
+
+          // Update move history
+          if (data.move) {
+            this.moveHistory.push(data.move)
+          }
+        } else if (data.move) {
+          // Fallback to applying move in SAN format
+          console.log('Applying move in SAN format:', data.move)
           const move = this.chess.move(data.move)
           if (move) {
             this.moveHistory.push(move.san)
           }
         }
 
-        // Option 2: If server sends new FEN (more reliable)
-        if (data.newFen) {
-          this.chess.load(data.newFen)
-        }
-
-        // Update the board
+        // Update the board - this triggers boardConfig recomputation
         this.currentFen = this.chess.fen()
-
-        console.log('Move applied successfully')
+        console.log('Move applied successfully, new FEN:', this.currentFen)
       } catch (error) {
         console.error('Error applying received move:', error)
         this.error = 'Failed to apply opponent\'s move'
