@@ -4,7 +4,8 @@
       "Bash(npm run serve)",
       "Bash(timeout 5 npm run serve)",
       "Bash(npm install:*)",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -16,7 +16,7 @@ Vue.js frontend for the CosmoChess platform with nginx, Vue.js, and custom chess
 - **Vue Router**: Client-side routing
 - **Axios**: HTTP client for API communication
 - **Chess.js**: Chess logic and move validation
-- **Custom Chessboard**: Custom implementation for chess piece display and interaction
+- **vue3-chessboard**: Professional chessboard component based on Chessground
 - **Nginx**: Web server for production deployment
 
 ## Development Setup
@@ -124,8 +124,9 @@ The production build uses nginx with:
 
 ## Development Notes
 
-- The chessboard uses a custom implementation with Vue.js components
+- The chessboard uses vue3-chessboard library (based on Chessground from Lichess)
 - Chess logic is handled by Chess.js library
 - Authentication tokens are stored in localStorage
 - API requests include automatic token injection via axios interceptors
 - The application includes route guards for authenticated routes
+- Chess.js instance is marked as non-reactive (markRaw) to prevent performance issues
