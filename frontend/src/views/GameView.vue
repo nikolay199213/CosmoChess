@@ -60,6 +60,7 @@ import { TheChessboard } from 'vue3-chessboard'
 import 'vue3-chessboard/style.css'
 import { gameService } from '../services/gameService'
 import { authService } from '../services/authService'
+import { markRaw } from 'vue'
 
 export default {
   name: 'GameView',
@@ -75,24 +76,36 @@ export default {
   data() {
     return {
       game: null,
-      chess: new Chess(),
+      chess: markRaw(new Chess()), // Make chess instance non-reactive
       boardAPI: null,
       error: '',
       analyzing: false,
       suggestion: '',
       moveHistory: [],
-      loading: true
+      loading: true,
+      currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' // Track FEN manually
     }
   },
   computed: {
     boardConfig() {
+      // Calculate dests inline without caching
+      const dests = new Map()
+      const moves = this.chess.moves({ verbose: true })
+
+      moves.forEach(move => {
+        if (!dests.has(move.from)) {
+          dests.set(move.from, [])
+        }
+        dests.get(move.from).push(move.to)
+      })
+
       return {
-        fen: this.chess.fen(),
+        fen: this.currentFen,
         orientation: 'white',
         movable: {
           free: false,
           color: this.chess.turn() === 'w' ? 'white' : 'black',
-          dests: this.possibleMoves()
+          dests: dests
         },
         animation: {
           enabled: true,
@@ -136,6 +149,7 @@ export default {
     async initializeGame() {
       try {
         this.chess.reset()
+        this.currentFen = this.chess.fen()
         this.loading = false
       } catch (error) {
         this.error = 'Failed to initialize game'
@@ -143,22 +157,10 @@ export default {
       }
     },
 
-    possibleMoves() {
-      const dests = new Map()
-      const moves = this.chess.moves({ verbose: true })
-
-      moves.forEach(move => {
-        if (!dests.has(move.from)) {
-          dests.set(move.from, [])
-        }
-        dests.get(move.from).push(move.to)
-      })
-
-      return dests
-    },
-
     onMove(move) {
       this.error = ''
+      console.log('onMove called with:', move)
+      const startTime = performance.now()
 
       try {
         const chessMove = this.chess.move({
@@ -169,30 +171,42 @@ export default {
 
         if (chessMove === null) {
           this.error = 'Invalid move'
+          console.log('Invalid move')
           return
         }
 
+        console.log('Move executed:', chessMove.san, `(${(performance.now() - startTime).toFixed(2)}ms)`)
         this.moveHistory.push(chessMove.san)
 
-        // Make the move on the backend
+        // Update FEN to trigger board update
+        const updateStart = performance.now()
+        this.currentFen = this.chess.fen()
+        console.log(`FEN updated in ${(performance.now() - updateStart).toFixed(2)}ms`)
+
+        // Send move to backend asynchronously (don't wait)
+        console.log('Sending move to backend...')
         gameService.makeMove(
           this.gameId,
           chessMove.san,
           this.chess.fen()
         ).then(result => {
+          console.log('Backend response:', result)
           if (!result.success) {
-            // Undo the move
+            // Undo the move if backend rejects it
             this.chess.undo()
             this.moveHistory.pop()
+            this.currentFen = this.chess.fen()
             this.error = result.error
           }
         }).catch(error => {
+          console.error('Backend error:', error)
           this.error = 'Failed to make move'
-          console.error('Move error:', error)
         })
+
+        console.log(`Total onMove time: ${(performance.now() - startTime).toFixed(2)}ms`)
       } catch (error) {
-        this.error = 'Failed to make move'
         console.error('Move error:', error)
+        this.error = 'Failed to make move'
       }
     },
 
