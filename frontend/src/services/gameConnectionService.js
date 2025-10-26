@@ -21,7 +21,7 @@ class GameConnectionService {
       const token = authService.getToken()
 
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl('/gameHub', {
+        .withUrl('/api/gamehub', {
           accessTokenFactory: () => token
         })
         .withAutomaticReconnect({

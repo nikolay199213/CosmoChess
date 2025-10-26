@@ -6,7 +6,10 @@
       "Bash(npm install:*)",
       "Bash(npm run dev)",
       "Bash(cat:*)",
-      "Bash(dotnet build)"
+      "Bash(dotnet build)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": [],
     "ask": []
