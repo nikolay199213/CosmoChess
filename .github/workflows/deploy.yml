@@ -1,0 +1,72 @@
+name: Deploy to RUVDS
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Create directory on server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.RUVDS_HOST }}
+          username: ${{ secrets.RUVDS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p /srv/cosmochess
+      
+      - name: Copy docker-compose.prod.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.RUVDS_HOST }}
+          username: ${{ secrets.RUVDS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "/srv/cosmochess"
+          overwrite: true
+          rm: false
+      
+      - name: Copy nginx config if exists
+        uses: appleboy/scp-action@v0.1.7
+        continue-on-error: true
+        with:
+          host: ${{ secrets.RUVDS_HOST }}
+          username: ${{ secrets.RUVDS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "nginx"
+          target: "/srv/cosmochess"
+          overwrite: true
+          rm: false
+      
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.RUVDS_HOST }}
+          username: ${{ secrets.RUVDS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /srv/cosmochess
+            
+            # Проверяем наличие файла
+            if [ ! -f "docker-compose.prod.yml" ]; then
+              echo "Error: docker-compose.prod.yml not found"
+              ls -la
+              exit 1
+            fi
+            
+            echo "===> Logging in to GHCR"
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            echo "===> Pulling latest images"
+            docker compose -f docker-compose.prod.yml pull
+            
+            echo "===> Starting containers"
+            docker compose -f docker-compose.prod.yml up -d
+            
+            echo "===> Pruning unused images"
+            docker image prune -af
