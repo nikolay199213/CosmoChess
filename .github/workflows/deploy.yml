@@ -1,0 +1,46 @@
+name: Deploy to RUVDS
+
+on:
+  workflow_dispatch:  # ручной запуск
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.RUVDS_HOST }}
+          username: ${{ secrets.RUVDS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "/srv/cosmochess/docker-compose.yml"
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.RUVDS_HOST }}
+          username: ${{ secrets.RUVDS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            echo "===> Creating project directory"
+            mkdir -p /srv/cosmochess
+            cd /srv/cosmochess
+
+            echo "===> Logging in to GHCR"
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "===> Pulling latest images"
+            docker compose pull
+
+            echo "===> Starting containers"
+            docker compose up -d
+
+            echo "===> Pruning unused images"
+            docker image prune -af
