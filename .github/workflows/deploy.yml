@@ -1,46 +1,37 @@
-name: Deploy to RUVDS
+name: Build and Push Docker Images
 
 on:
-  workflow_dispatch:  # ручной запуск
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Copy docker-compose.yml to server
-        uses: appleboy/scp-action@v0.1.7
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.RUVDS_HOST }}
-          username: ${{ secrets.RUVDS_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml"
-          target: "/srv/cosmochess/"
-
-      - name: Deploy on server
-        uses: appleboy/ssh-action@v0.1.10
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
         with:
-          host: ${{ secrets.RUVDS_HOST }}
-          username: ${{ secrets.RUVDS_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-
-            echo "===> Creating project directory"
-            mkdir -p /srv/cosmochess
-            cd /srv/cosmochess
-
-            echo "===> Logging in to GHCR"
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            echo "===> Pulling latest images"
-            docker compose pull
-
-            echo "===> Starting containers"
-            docker compose up -d
-
-            echo "===> Pruning unused images"
-            docker image prune -af
+          context: ./backend
+          file: ./backend/CosmoChess.Api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/cosmochess-backend:latest
+      
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/cosmochess-frontend:latest
