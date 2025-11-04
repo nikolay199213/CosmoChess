@@ -67,6 +67,9 @@ jobs:
             
             echo "===> Starting containers"
             docker compose -f docker-compose.prod.yml up -d
-            
+
+            echo "===> Restarting nginx to reload config"
+            docker restart cosmochess-nginx
+
             echo "===> Pruning unused images"
             docker image prune -af
