@@ -35,12 +35,8 @@ services:
   frontend:
     image: ghcr.io/nikolay199213/cosmochess-frontend:latest
     container_name: cosmochess-frontend
-    expose:
-      - "8080"
-    depends_on:
-      - backend
-    networks:
-      - cosmochess-network
+    volumes:
+      - frontend_dist:/dist
     restart: unless-stopped
 
   nginx:
@@ -50,6 +46,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - frontend_dist:/usr/share/nginx/html:ro
     depends_on:
       - frontend
       - backend
@@ -59,6 +56,7 @@ services:
 
 volumes:
   postgres_data:
+  frontend_dist:
 
 networks:
   cosmochess-network:

@@ -15,17 +15,11 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine as production-stage
+# Production stage - just store the built files
+FROM busybox:latest
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy built files
+COPY --from=build-stage /app/dist /dist
 
-# Copy built app to nginx html directory
-COPY --from=build-stage /app/dist /usr/share/nginx/html
-
-# Expose port 8080
-EXPOSE 8080
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Keep container running (files will be accessed via volume)
+CMD ["sh", "-c", "tail -f /dev/null"]
