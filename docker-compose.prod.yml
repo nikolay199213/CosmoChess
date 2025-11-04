@@ -22,7 +22,7 @@ services:
     container_name: cosmochess-backend
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=cosmochess;Username=postgres;Password=password123
+      - DB_CONNECTION_STRING=Host=postgres;Database=cosmochess;Username=postgres;Password=password123
     expose:
       - "5000"
     depends_on:
