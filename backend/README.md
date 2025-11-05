@@ -67,3 +67,65 @@ The database schema is managed using EF Core migrations. To create and apply the
     dotnet run
     ```
 The API will start, typically on `http://localhost:5000` and `https://localhost:5001`. You can see the available endpoints and test them using the Swagger UI at `/swagger`.
+
+## Docker Deployment
+
+### Using Docker Compose (Recommended)
+
+From the root directory:
+
+```bash
+docker-compose up --build
+```
+
+This will start all services including the backend on internal port 5000.
+
+### Production Configuration
+
+In production (`docker-compose.prod.yml`), the backend uses:
+
+**Environment Variables:**
+- `ASPNETCORE_ENVIRONMENT=Production` - Disables Swagger, enables production optimizations
+- `DB_CONNECTION_STRING` - PostgreSQL connection string
+- `JWT_KEY` - Secret key for JWT token generation
+
+**Important Production Settings:**
+- HTTPS redirection is **disabled** (nginx handles SSL termination)
+- `UseAuthentication()` middleware is enabled before `UseAuthorization()`
+- Automatic database migrations run on startup
+- SignalR hub is mapped to `/api/gamehub` to match nginx routing
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and receive JWT token
+
+### Games
+- `GET /api/games/wait-join` - Get games waiting for players
+- `POST /api/games/create` - Create a new game
+- `POST /api/games/join` - Join an existing game
+- `POST /api/games/move` - Make a move in a game
+- `POST /api/games/analyze` - Analyze position with Stockfish engine
+
+### SignalR Hub
+- `/api/gamehub` - WebSocket connection for real-time gameplay
+
+## Configuration Notes
+
+### Production Middleware Order
+```csharp
+app.UseAuthentication();  // Must be before UseAuthorization
+app.UseAuthorization();
+app.MapControllers();
+app.MapHub<GameHub>("/api/gamehub");  // SignalR hub mapping
+```
+
+### HTTPS Redirection
+HTTPS redirection is **only enabled in Development**. In production, nginx handles SSL termination, so the backend receives HTTP traffic internally.
+
+### Database Migrations
+Migrations are automatically applied on application startup using:
+```csharp
+await context.Database.MigrateAsync();
+```

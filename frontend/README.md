@@ -63,15 +63,22 @@ docker-compose up --build
 
 This will start:
 - PostgreSQL database on port 5432
-- Backend API on port 5000
-- Frontend on port 8080
+- Backend API (internal port 5000)
+- Frontend nginx server (internal port 8080)
+- Nginx reverse proxy on port 80
 
-### Frontend Only
+The application will be accessible at `http://localhost`
+
+### Production Build
+
+The production Dockerfile uses a multi-stage build:
+1. **Build stage**: Node.js builds the Vue.js application
+2. **Production stage**: Nginx serves the static files on port 8080
 
 ```bash
 cd frontend
 docker build -t cosmochess-frontend .
-docker run -p 8080:80 cosmochess-frontend
+docker run -p 8080:8080 cosmochess-frontend
 ```
 
 ## API Integration
@@ -85,6 +92,11 @@ The frontend communicates with the backend API through the following endpoints:
 - `POST /api/games/join` - Join an existing game
 - `POST /api/games/move` - Make a move in a game
 - `POST /api/games/analyze` - Analyze a chess position
+
+### SignalR Real-time Connection
+
+- WebSocket endpoint: `/api/gamehub`
+- Used for real-time game updates and player moves
 
 ## Components Overview
 
@@ -115,12 +127,17 @@ The application can be configured through environment variables or by modifying 
 
 ### Nginx Configuration
 
-The production build uses nginx with:
-- Static file serving with caching
-- API proxy to backend
-- CORS headers for development
-- Security headers
-- Gzip compression
+#### Frontend Container (port 8080)
+The production Dockerfile configures nginx to:
+- Serve static files from `/usr/share/nginx/html`
+- Handle Vue Router with `try_files` for SPA support
+- Listen on port 8080
+
+#### Main Nginx Reverse Proxy (port 80)
+Located at `nginx/nginx.conf`, routes requests to:
+- `/` → Frontend container (port 8080)
+- `/api/` → Backend container (port 5000)
+- `/api/gamehub` → SignalR WebSocket hub with proper WebSocket headers
 
 ## Development Notes
 

@@ -14,26 +14,31 @@ The project consists of several key components orchestrated using Docker.
     - `CosmoChess.Application`: Application logic, CQRS commands, and handlers.
     - `CosmoChess.Infrastructure`: Implementation of interfaces, database access (Entity Framework Core), authentication, and external services (Stockfish).
     - `CosmoChess.Api`: The API layer based on ASP.NET Core, which provides RESTful endpoints and manages real-time communication via SignalR.
-- **Database:** PostgreSQL.
+- **Database:** PostgreSQL with automatic migrations on startup.
 - **Authentication:** JWT (JSON Web Tokens) based.
-- **Real-time:** SignalR for real-time data exchange.
+- **Real-time:** SignalR for WebSocket-based real-time gameplay (endpoint: `/api/gamehub`).
 
 ### Frontend
 
 - **Framework:** Vue.js
 - **Build Tool:** Vite
+- **Production Serving:** Nginx (inside frontend container on port 8080)
 - **Backend Interaction:**
-    - REST API for core operations (game creation, login).
-    - WebSockets (via SignalR client) for real-time gameplay.
+    - REST API for core operations (game creation, login) via `/api/` endpoint.
+    - WebSockets (via SignalR client) for real-time gameplay via `/api/gamehub`.
 
 ### Infrastructure
 
 - **Containerization:** Docker and Docker Compose for creating and managing the environment.
-- **Web Server/Proxy:** Nginx is used as a reverse proxy to route requests to the frontend and backend services.
+- **Web Server/Proxy:** Nginx is used as a reverse proxy to route requests:
+    - `/` → Frontend container (nginx on port 8080)
+    - `/api/` → Backend container (ASP.NET on port 5000)
+    - `/api/gamehub` → SignalR WebSocket hub
+- **CI/CD:** GitHub Actions for automated builds and deployment.
 
 ## Getting Started
 
-The project is fully containerized, so only Docker is required to run it.
+### Local Development
 
 **Prerequisites:**
 - Docker
@@ -57,10 +62,34 @@ The project is fully containerized, so only Docker is required to run it.
     After all containers have started successfully, the application will be available at:
     [http://localhost](http://localhost)
 
+### Production Deployment
+
+The project uses GitHub Actions for automated deployment to production.
+
+**Workflow:**
+1. Push to `main` branch triggers Docker image builds
+2. Images are pushed to GitHub Container Registry (GHCR)
+3. Deployment workflow pulls latest images and restarts containers on the server
+
+**Production configuration:**
+- Uses `docker-compose.prod.yml` with pre-built images from GHCR
+- Environment variables configured for production
+- All services run in isolated Docker network
+
 ## Project Structure
 
-- `backend/`: Source code for the .NET backend application.
-- `frontend/`: Source code for the Vue.js frontend application.
+- `backend/`: Source code for the .NET backend application. [See README](backend/README.md)
+- `frontend/`: Source code for the Vue.js frontend application. [See README](frontend/README.md)
 - `database/`: Contains scripts for database initialization.
-- `nginx/`: Configuration files for Nginx.
-- `docker-compose.yml`: The main file for orchestrating all project services.
+- `nginx/`: Configuration files for Nginx reverse proxy. [See README](nginx/README.md)
+- `docker-compose.yml`: Development environment configuration.
+- `docker-compose.prod.yml`: Production environment configuration.
+- `.github/workflows/`: CI/CD pipelines for build and deployment.
+
+## Documentation
+
+- [Configuration Reference](CONFIGURATION.md) - Important configuration details and common mistakes
+- [Deployment Guide](DEPLOYMENT.md) - Production deployment instructions
+- [Backend Documentation](backend/README.md) - Backend architecture and API
+- [Frontend Documentation](frontend/README.md) - Frontend setup and components
+- [Nginx Configuration](nginx/README.md) - Reverse proxy setup
