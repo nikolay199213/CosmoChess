@@ -414,12 +414,16 @@ export default {
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #ecf0f1;
+  border-bottom: 1px solid rgba(197, 212, 255, 0.2);
 }
 
 .game-header h1 {
-  color: #2c3e50;
+  color: var(--cosmic-figures, #F2F2F2);
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-weight: 700;
+  font-size: 2rem;
   margin: 0;
+  text-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
 }
 
 .game-info {
@@ -429,23 +433,30 @@ export default {
 }
 
 .game-status {
-  font-weight: bold;
-  color: #27ae60;
+  font-weight: 600;
+  color: var(--cosmic-action-primary, #7A4CE0);
   font-size: 1.1rem;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  text-shadow: 0 0 10px rgba(122, 76, 224, 0.4);
 }
 
 .suggestion {
-  background-color: #e8f5e8;
-  border: 1px solid #27ae60;
-  border-radius: 4px;
+  background: rgba(122, 76, 224, 0.15);
+  border: 1px solid rgba(122, 76, 224, 0.3);
+  border-radius: var(--card-radius, 12px);
   padding: 1rem;
   margin-bottom: 1rem;
-  color: #2d5a2d;
+  color: var(--cosmic-stars, #C5D4FF);
+  backdrop-filter: blur(10px);
+}
+
+.suggestion strong {
+  color: var(--cosmic-figures, #F2F2F2);
 }
 
 .game-board {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 350px;
   gap: 2rem;
   align-items: start;
 }
@@ -458,19 +469,31 @@ export default {
 }
 
 .chessboard-container {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
+  background: linear-gradient(
+    135deg,
+    rgba(27, 35, 64, 0.6) 0%,
+    rgba(40, 50, 86, 0.4) 100%
+  );
+  border: 1px solid rgba(197, 212, 255, 0.15);
+  border-radius: var(--card-radius, 12px);
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(122, 76, 224, 0.1);
+  max-width: 650px;
   margin: 0 auto;
 }
 
 .game-sidebar {
-  background: white;
-  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(27, 35, 64, 0.6) 0%,
+    rgba(40, 50, 86, 0.4) 100%
+  );
+  border: 1px solid rgba(197, 212, 255, 0.15);
+  border-radius: var(--card-radius, 12px);
   padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   height: fit-content;
 }
 
@@ -480,37 +503,77 @@ export default {
   margin-bottom: 2rem;
 }
 
+.game-details:last-child,
+.move-history:last-child,
+.game-controls:last-child {
+  margin-bottom: 0;
+}
+
 .game-details h3,
 .move-history h3 {
   margin: 0 0 1rem 0;
-  color: #2c3e50;
+  color: var(--cosmic-figures, #F2F2F2);
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
   font-size: 1.2rem;
-  border-bottom: 1px solid #ecf0f1;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(197, 212, 255, 0.15);
   padding-bottom: 0.5rem;
 }
 
 .game-details p {
   margin: 0.5rem 0;
-  color: #7f8c8d;
+  color: var(--cosmic-stars, #C5D4FF);
+  font-family: var(--font-body, 'Inter', sans-serif);
+}
+
+.game-details p strong {
+  color: var(--cosmic-figures, #F2F2F2);
+  font-weight: 600;
 }
 
 .moves-list {
-  max-height: 200px;
+  max-height: 250px;
   overflow-y: auto;
-  border: 1px solid #ecf0f1;
-  border-radius: 4px;
+  border: 1px solid rgba(197, 212, 255, 0.1);
+  border-radius: 8px;
   padding: 0.5rem;
+  background: rgba(10, 13, 20, 0.4);
+}
+
+.moves-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.moves-list::-webkit-scrollbar-track {
+  background: rgba(27, 35, 64, 0.3);
+  border-radius: 4px;
+}
+
+.moves-list::-webkit-scrollbar-thumb {
+  background: rgba(122, 76, 224, 0.4);
+  border-radius: 4px;
+}
+
+.moves-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(122, 76, 224, 0.6);
 }
 
 .move-item {
-  padding: 0.25rem;
-  font-family: monospace;
-  font-size: 0.9rem;
-  color: #2c3e50;
+  padding: 0.4rem 0.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  color: var(--cosmic-stars, #C5D4FF);
+  border-radius: 4px;
+  transition: background var(--transition-smooth, 200ms);
 }
 
 .move-item:nth-child(even) {
-  background-color: #f8f9fa;
+  background-color: rgba(27, 35, 64, 0.3);
+}
+
+.move-item:hover {
+  background-color: rgba(122, 76, 224, 0.2);
+  color: var(--cosmic-figures, #F2F2F2);
 }
 
 .game-controls .btn {
@@ -519,23 +582,102 @@ export default {
 
 .connection-status {
   font-size: 0.9rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
   font-weight: 500;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  backdrop-filter: blur(10px);
 }
 
 .status-connected {
-  background-color: #d4edda;
-  color: #155724;
+  background: var(--status-success-bg, rgba(122, 76, 224, 0.15));
+  color: var(--status-success-text, #C5D4FF);
+  border: 1px solid rgba(122, 76, 224, 0.3);
+  box-shadow: 0 0 12px rgba(122, 76, 224, 0.2);
 }
 
 .status-connecting {
-  background-color: #fff3cd;
-  color: #856404;
+  background: var(--status-warning-bg, rgba(138, 90, 173, 0.15));
+  color: var(--status-warning-text, #E6E0FF);
+  border: 1px solid rgba(138, 90, 173, 0.3);
 }
 
 .status-disconnected {
-  background-color: #f8d7da;
-  color: #721c24;
+  background: var(--status-error-bg, rgba(101, 61, 137, 0.15));
+  color: var(--status-error-text, #C5D4FF);
+  border: 1px solid rgba(101, 61, 137, 0.3);
+}
+</style>
+
+<style>
+/* Override vue3-chessboard styles with cosmic theme */
+/* Note: These styles are not scoped to affect the chessboard component */
+
+.cg-wrap {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(122, 76, 224, 0.2);
+}
+
+/* Chess board squares - Cosmic dark theme */
+cg-board square.light {
+  background-color: var(--chess-square-light, #10131C) !important;
+}
+
+cg-board square.dark {
+  background-color: var(--chess-square-dark, #1E2433) !important;
+}
+
+/* Move highlights with cosmic glow */
+cg-board square.move-dest {
+  background: radial-gradient(
+    circle,
+    rgba(122, 76, 224, 0.4) 25%,
+    rgba(122, 76, 224, 0.2) 50%,
+    transparent 80%
+  ) !important;
+}
+
+cg-board square.selected {
+  background-color: rgba(122, 76, 224, 0.3) !important;
+}
+
+cg-board square.last-move {
+  background-color: rgba(138, 90, 173, 0.25) !important;
+}
+
+/* Piece move indicator dots */
+cg-board square.move-dest::before {
+  background: radial-gradient(
+    circle,
+    rgba(197, 212, 255, 0.8) 0%,
+    rgba(122, 76, 224, 0.6) 50%,
+    transparent 100%
+  ) !important;
+  box-shadow: 0 0 8px rgba(122, 76, 224, 0.6);
+}
+
+/* Hover effect on squares */
+cg-board square:hover {
+  background-color: rgba(122, 76, 224, 0.15) !important;
+}
+
+/* Check indicator */
+cg-board square.check {
+  background: radial-gradient(
+    circle,
+    rgba(101, 61, 137, 0.6) 0%,
+    rgba(101, 61, 137, 0.3) 50%,
+    transparent 100%
+  ) !important;
+  box-shadow: 0 0 15px rgba(101, 61, 137, 0.5);
+}
+
+/* Coordinates (letters and numbers on board edges) */
+coords {
+  color: var(--cosmic-stars, #C5D4FF) !important;
+  opacity: 0.7;
+  font-family: var(--font-body, 'Inter', sans-serif) !important;
+  font-size: 0.8rem;
 }
 </style>

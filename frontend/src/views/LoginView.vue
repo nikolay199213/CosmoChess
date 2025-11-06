@@ -149,19 +149,35 @@ export default {
 }
 
 .login-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  background: linear-gradient(
+    135deg,
+    rgba(27, 35, 64, 0.6) 0%,
+    rgba(40, 50, 86, 0.4) 100%
+  );
+  border: 1px solid rgba(197, 212, 255, 0.15);
+  border-radius: var(--card-radius, 12px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(122, 76, 224, 0.1);
+  padding: 2.5rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  transition: all var(--transition-smooth, 200ms);
+}
+
+.login-card:hover {
+  border-color: rgba(122, 76, 224, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 80px rgba(122, 76, 224, 0.15);
 }
 
 .login-title {
   text-align: center;
   margin-bottom: 2rem;
-  color: #2c3e50;
+  color: var(--cosmic-figures, #F2F2F2);
   font-size: 1.8rem;
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-weight: 700;
+  text-shadow: 0 0 30px rgba(122, 76, 224, 0.3);
+  letter-spacing: 0.5px;
 }
 
 .login-form {
@@ -170,35 +186,49 @@ export default {
 
 .login-btn {
   width: 100%;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
 }
 
 .login-btn:disabled {
-  background-color: #bdc3c7;
+  background: rgba(27, 35, 64, 0.6);
   cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
 }
 
 .login-footer {
   text-align: center;
-  border-top: 1px solid #ecf0f1;
-  padding-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(197, 212, 255, 0.1);
+  color: var(--cosmic-stars, #C5D4FF);
+}
+
+.login-footer p {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 .toggle-btn {
   background: none;
   border: none;
-  color: #3498db;
+  color: var(--cosmic-action-primary, #7A4CE0);
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
   font-size: inherit;
+  font-weight: 500;
+  margin-left: 0.5rem;
+  padding: 0;
+  transition: all var(--transition-smooth, 200ms);
 }
 
 .toggle-btn:hover {
-  color: #2980b9;
+  color: var(--cosmic-action-hover, #9464E8);
+  text-shadow: 0 0 10px rgba(122, 76, 224, 0.5);
 }
 
 .toggle-btn:disabled {
-  color: #bdc3c7;
+  color: rgba(197, 212, 255, 0.3);
   cursor: not-allowed;
+  text-shadow: none;
 }
 </style>

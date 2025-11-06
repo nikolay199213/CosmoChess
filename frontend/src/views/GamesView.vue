@@ -265,12 +265,16 @@ export default {
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #ecf0f1;
+  border-bottom: 1px solid rgba(197, 212, 255, 0.2);
 }
 
 .games-header h1 {
-  color: #2c3e50;
+  color: var(--cosmic-figures, #F2F2F2);
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-weight: 700;
+  font-size: 2rem;
   margin: 0;
+  text-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
 }
 
 .games-grid {
@@ -286,19 +290,24 @@ export default {
 }
 
 .games-section h2 {
-  color: #34495e;
+  color: var(--cosmic-stars, #C5D4FF);
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-weight: 600;
+  font-size: 1.3rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #ecf0f1;
+  border-bottom: 1px solid rgba(197, 212, 255, 0.15);
 }
 
 .loading, .no-games {
   text-align: center;
-  color: #7f8c8d;
+  color: var(--cosmic-stars, #C5D4FF);
   padding: 2rem;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: rgba(27, 35, 64, 0.3);
+  border: 1px solid rgba(197, 212, 255, 0.1);
+  border-radius: var(--card-radius, 12px);
   font-style: italic;
+  backdrop-filter: blur(10px);
 }
 
 .games-list {
@@ -308,37 +317,46 @@ export default {
 }
 
 .game-card {
-  background: white;
-  border: 1px solid #ecf0f1;
-  border-radius: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(27, 35, 64, 0.6) 0%,
+    rgba(40, 50, 86, 0.4) 100%
+  );
+  border: 1px solid rgba(197, 212, 255, 0.1);
+  border-radius: var(--card-radius, 12px);
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all var(--transition-smooth, 200ms);
 }
 
 .game-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(122, 76, 224, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 30px rgba(122, 76, 224, 0.15);
 }
 
 .game-info h3 {
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
+  margin: 0 0 0.75rem 0;
+  color: var(--cosmic-figures, #F2F2F2);
+  font-family: var(--font-body, 'Inter', sans-serif);
   font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .game-info p {
-  margin: 0.25rem 0;
-  color: #7f8c8d;
+  margin: 0.4rem 0;
+  color: var(--cosmic-stars, #C5D4FF);
   font-size: 0.9rem;
+  font-family: var(--font-body, 'Inter', sans-serif);
 }
 
 .game-actions {
-  margin-top: 1rem;
+  margin-top: 1.25rem;
   text-align: right;
 }
 
 .game-actions .btn {
-  min-width: 100px;
+  min-width: 120px;
 }
 </style>
