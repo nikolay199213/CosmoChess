@@ -176,6 +176,34 @@ body::after {
   width: 100%;
 }
 
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .nav-title {
+    font-size: 1.5rem;
+  }
+
+  .nav-container {
+    padding: 0 0.5rem;
+  }
+
+  .nav-links {
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .logout-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
 /* Cosmic Buttons */
 .btn {
   padding: 0.75rem 1.5rem;
