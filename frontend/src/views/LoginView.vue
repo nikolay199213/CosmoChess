@@ -59,7 +59,7 @@
 
       <div class="google-signin-container">
         <div id="g_id_onload"
-             data-client_id="YOUR_GOOGLE_CLIENT_ID"
+             data-client_id="563541620211-329n2i2revk9j8rbfddti2pv0hkf6300.apps.googleusercontent.com"
              data-callback="handleGoogleCallback">
         </div>
         <div class="g_id_signin"
