@@ -23,11 +23,13 @@
 
     <div class="game-board">
       <div class="chessboard-container">
-        <TheChessboard
-          :board-config="boardConfig"
-          @board-created="(api) => (boardAPI = api)"
-          @move="onMove"
-        />
+        <div class="board-wrapper">
+          <TheChessboard
+            :board-config="boardConfig"
+            @board-created="(api) => (boardAPI = api)"
+            @move="onMove"
+          />
+        </div>
       </div>
       
       <div class="game-sidebar">
@@ -484,12 +486,6 @@ export default {
     width: 100%;
   }
 
-  .chessboard-container {
-    padding: 0.75rem;
-    max-width: 100%;
-    width: 100%;
-  }
-
   .main-content {
     padding: 1rem;
   }
@@ -517,6 +513,15 @@ export default {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(122, 76, 224, 0.1);
   max-width: 650px;
   margin: 0 auto;
+  min-width: 280px;
+}
+
+.board-wrapper {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  position: relative;
 }
 
 .game-sidebar {
@@ -719,18 +724,50 @@ coords {
 
 /* Mobile responsiveness for chessboard */
 @media (max-width: 768px) {
-  .cg-wrap {
-    width: 100% !important;
-    height: auto !important;
+  .chessboard-container {
+    padding: 0.5rem;
+    max-width: 100vw;
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
   }
 
-  cg-board {
-    width: 100% !important;
-    height: 100% !important;
+  .board-wrapper {
+    max-width: 100%;
   }
 
   coords {
     font-size: 0.6rem !important;
   }
+}
+
+/* Fallback for browsers without aspect-ratio support */
+@supports not (aspect-ratio: 1 / 1) {
+  .board-wrapper {
+    height: 0;
+    padding-bottom: 100%;
+  }
+
+  .board-wrapper > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Ensure chessboard is always visible and properly sized */
+.cg-wrap {
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+cg-board {
+  display: block !important;
+}
+
+cg-board square {
+  display: inline-block !important;
 }
 </style>
