@@ -18,6 +18,12 @@ namespace CosmoChess.Infrastructure.Repositories
                 .FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
         }
 
+        public async Task<User?> GetByGoogleIdAsync(string googleId, CancellationToken cancellationToken = default)
+        {
+            return await dbContext.Users
+                .FirstOrDefaultAsync(u => u.GoogleId == googleId, cancellationToken);
+        }
+
         public async Task<User> AddAsync(User user, CancellationToken cancellationToken = default)
         {
             dbContext.Users.Add(user);

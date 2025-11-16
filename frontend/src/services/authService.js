@@ -90,14 +90,53 @@ class AuthService {
         UserName: username,
         Password: password
       })
-      
+
       // After successful registration, automatically log in
       return await this.login(username, password)
     } catch (error) {
       console.error('Registration error:', error)
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Registration failed' 
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Registration failed'
+      }
+    }
+  }
+
+  async googleAuth(idToken) {
+    try {
+      console.log('Sending Google auth request')
+
+      const response = await axios.post('/auth/google', {
+        IdToken: idToken
+      })
+
+      console.log('Google auth response:', response)
+
+      if (!response.data || (!response.data.Token && !response.data.token)) {
+        console.error('Invalid response structure:', response.data)
+        throw new Error('No token received from server')
+      }
+
+      this.token = response.data.Token || response.data.token
+      console.log('Token stored successfully:', this.token ? 'Yes' : 'No')
+
+      this.userId = this.parseUserIdFromToken(this.token)
+      console.log('Parsed userId:', this.userId)
+
+      localStorage.setItem('authToken', this.token)
+      if (this.userId) {
+        localStorage.setItem('userId', this.userId)
+      }
+
+      this.isLoggedIn.value = true
+      console.log('Authentication state updated')
+
+      return { success: true }
+    } catch (error) {
+      console.error('Google auth error:', error)
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Google authentication failed'
       }
     }
   }

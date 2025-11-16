@@ -44,14 +44,34 @@
           {{ error }}
         </div>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           class="btn btn-primary login-btn"
           :disabled="loading || !isFormValid"
         >
           {{ loading ? 'Processing...' : (isLoginMode ? 'Login' : 'Register') }}
         </button>
       </form>
+
+      <div class="divider">
+        <span>OR</span>
+      </div>
+
+      <div class="google-signin-container">
+        <div id="g_id_onload"
+             data-client_id="YOUR_GOOGLE_CLIENT_ID"
+             data-callback="handleGoogleCallback">
+        </div>
+        <div class="g_id_signin"
+             data-type="standard"
+             data-size="large"
+             data-theme="filled_black"
+             data-text="signin_with"
+             data-shape="rectangular"
+             data-logo_alignment="left"
+             data-width="360">
+        </div>
+      </div>
 
       <div class="login-footer">
         <p>
@@ -96,6 +116,13 @@ export default {
     if (authService.isAuthenticated()) {
       this.$router.push('/games')
     }
+
+    // Setup Google Sign-In callback
+    window.handleGoogleCallback = this.handleGoogleCallback
+  },
+  beforeUnmount() {
+    // Cleanup
+    delete window.handleGoogleCallback
   },
   methods: {
     async handleSubmit() {
@@ -134,6 +161,29 @@ export default {
       this.isLoginMode = !this.isLoginMode
       this.error = ''
       this.confirmPassword = ''
+    },
+
+    async handleGoogleCallback(response) {
+      this.error = ''
+      this.loading = true
+
+      try {
+        console.log('Google Sign-In response:', response)
+
+        const result = await authService.googleAuth(response.credential)
+
+        if (result.success) {
+          await this.$nextTick()
+          this.$router.replace('/games')
+        } else {
+          this.error = result.error
+        }
+      } catch (error) {
+        this.error = 'Google authentication failed'
+        console.error('Google auth error:', error)
+      } finally {
+        this.loading = false
+      }
     }
   }
 }
@@ -194,6 +244,33 @@ export default {
   cursor: not-allowed;
   opacity: 0.5;
   box-shadow: none;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: var(--cosmic-stars, #C5D4FF);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(197, 212, 255, 0.15);
+}
+
+.divider span {
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.google-signin-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
 }
 
 .login-footer {
