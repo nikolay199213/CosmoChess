@@ -23,11 +23,11 @@ class GameService {
     }
   }
 
-  async createGame() {
+  async createGame(timeControl = 0) {
     try {
       const userId = authService.getUserId()
-      console.log('Creating game with userId:', userId)
-      
+      console.log('Creating game with userId:', userId, 'timeControl:', timeControl)
+
       if (!userId) {
         console.error('User not authenticated - no userId found')
         throw new Error('User not authenticated')
@@ -35,17 +35,18 @@ class GameService {
 
       console.log('Sending create game request...')
       const response = await axios.post('/games/create', {
-        CreatorId: userId
+        CreatorId: userId,
+        TimeControl: timeControl
       })
-      
+
       console.log('Create game response:', response.data)
       return { success: true, gameId: response.data }
     } catch (error) {
       console.error('Error creating game:', error)
       console.error('Error response:', error.response)
-      return { 
-        success: false, 
-        error: error.response?.data?.error || error.message || 'Failed to create game' 
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create game'
       }
     }
   }

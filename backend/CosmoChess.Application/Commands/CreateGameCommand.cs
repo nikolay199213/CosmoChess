@@ -1,6 +1,7 @@
-﻿using MediatR;
+﻿using CosmoChess.Domain.Enums;
+using MediatR;
 
 namespace CosmoChess.Application.Commands
 {
-    public record CreateGameCommand(Guid CreatorId) : IRequest<Guid>;
+    public record CreateGameCommand(Guid CreatorId, TimeControl TimeControl = TimeControl.None) : IRequest<Guid>;
 }

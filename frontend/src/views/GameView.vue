@@ -22,16 +22,32 @@
     </div>
 
     <div class="game-board">
-      <div class="chessboard-container">
-        <div class="board-wrapper">
-          <TheChessboard
-            :board-config="boardConfig"
-            @board-created="(api) => (boardAPI = api)"
-            @move="onMove"
-          />
+      <div class="board-section">
+        <GameTimer
+          v-if="hasTimeControl"
+          :timeSeconds="blackTimeRemaining"
+          :isActive="chess.turn() === 'b' && gameResult === 1"
+          label="Black"
+        />
+
+        <div class="chessboard-container">
+          <div class="board-wrapper">
+            <TheChessboard
+              :board-config="boardConfig"
+              @board-created="(api) => (boardAPI = api)"
+              @move="onMove"
+            />
+          </div>
         </div>
+
+        <GameTimer
+          v-if="hasTimeControl"
+          :timeSeconds="whiteTimeRemaining"
+          :isActive="chess.turn() === 'w' && gameResult === 1"
+          label="White"
+        />
       </div>
-      
+
       <div class="game-sidebar">
         <div class="game-details">
           <h3>Game Details</h3>
@@ -67,11 +83,13 @@ import { gameService } from '../services/gameService'
 import { authService } from '../services/authService'
 import { gameConnectionService } from '../services/gameConnectionService'
 import { markRaw } from 'vue'
+import GameTimer from '../components/GameTimer.vue'
 
 export default {
   name: 'GameView',
   components: {
-    TheChessboard
+    TheChessboard,
+    GameTimer
   },
   props: {
     gameId: {
@@ -90,7 +108,10 @@ export default {
       moveHistory: [],
       loading: true,
       currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', // Track FEN manually
-      connectionStatus: 'Disconnected'
+      connectionStatus: 'Disconnected',
+      whiteTimeRemaining: 0,
+      blackTimeRemaining: 0,
+      timerInterval: null
     }
   },
   computed: {
@@ -155,14 +176,24 @@ export default {
         'status-connecting': this.connectionStatus === 'Connecting' || this.connectionStatus === 'Reconnecting',
         'status-disconnected': this.connectionStatus === 'Disconnected'
       }
+    },
+
+    hasTimeControl() {
+      return this.game && this.game.timeControl !== 0
+    },
+
+    gameResult() {
+      return this.game?.gameResult || 0
     }
   },
   async mounted() {
     await this.initializeGame()
     await this.setupRealtimeConnection()
+    this.startTimer()
   },
   async unmounted() {
     await this.cleanupRealtimeConnection()
+    this.stopTimer()
   },
   watch: {
     currentFen(newFen) {
@@ -192,6 +223,10 @@ export default {
             this.moveHistory = result.game.moves.map(m => m.move)
             console.log('Loaded move history:', this.moveHistory)
           }
+
+          // Load timer data
+          this.whiteTimeRemaining = result.game.whiteTimeRemainingSeconds || 0
+          this.blackTimeRemaining = result.game.blackTimeRemainingSeconds || 0
 
           console.log('Game loaded:', this.game)
         } else {
@@ -292,6 +327,14 @@ export default {
           if (move) {
             this.moveHistory.push(move.san)
           }
+        }
+
+        // Update timers if provided
+        if (data.whiteTimeRemainingSeconds !== undefined) {
+          this.whiteTimeRemaining = data.whiteTimeRemainingSeconds
+        }
+        if (data.blackTimeRemainingSeconds !== undefined) {
+          this.blackTimeRemaining = data.blackTimeRemainingSeconds
         }
 
         // Update the board - this triggers boardConfig recomputation
@@ -399,6 +442,33 @@ export default {
 
     goBack() {
       this.$router.push('/games')
+    },
+
+    startTimer() {
+      // Update timer every second
+      this.timerInterval = setInterval(() => {
+        if (this.hasTimeControl && this.gameResult === 1) {
+          // Game is in progress
+          if (this.chess.turn() === 'w') {
+            this.whiteTimeRemaining = Math.max(0, this.whiteTimeRemaining - 1)
+            if (this.whiteTimeRemaining === 0) {
+              this.error = 'White ran out of time! Black wins.'
+            }
+          } else {
+            this.blackTimeRemaining = Math.max(0, this.blackTimeRemaining - 1)
+            if (this.blackTimeRemaining === 0) {
+              this.error = 'Black ran out of time! White wins.'
+            }
+          }
+        }
+      }, 1000)
+    },
+
+    stopTimer() {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval)
+        this.timerInterval = null
+      }
     }
   }
 }
@@ -461,6 +531,12 @@ export default {
   grid-template-columns: 1fr 350px;
   gap: 2rem;
   align-items: start;
+}
+
+.board-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 @media (max-width: 1024px) {
