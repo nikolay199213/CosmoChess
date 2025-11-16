@@ -20,5 +20,12 @@ namespace CosmoChess.Api.Controllers
             var token = await mediator.Send(command);
             return Ok(new { Token = token });
         }
+
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleAuth([FromBody] GoogleAuthCommand command)
+        {
+            var token = await mediator.Send(command);
+            return Ok(new { Token = token });
+        }
     }
 }
