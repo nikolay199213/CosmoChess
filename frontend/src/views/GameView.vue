@@ -468,6 +468,42 @@ export default {
   }
 }
 
+@media (max-width: 768px) {
+  .game-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .game-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .game-info {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .chessboard-container {
+    padding: 0.75rem;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .connection-status {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .game-status {
+    font-size: 1rem;
+  }
+}
+
 .chessboard-container {
   background: linear-gradient(
     135deg,
@@ -679,5 +715,22 @@ coords {
   opacity: 0.7;
   font-family: var(--font-body, 'Inter', sans-serif) !important;
   font-size: 0.8rem;
+}
+
+/* Mobile responsiveness for chessboard */
+@media (max-width: 768px) {
+  .cg-wrap {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  cg-board {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  coords {
+    font-size: 0.6rem !important;
+  }
 }
 </style>
