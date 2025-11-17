@@ -50,9 +50,7 @@
 
       <div class="game-sidebar">
         <div class="game-details">
-          <h3>Game Details</h3>
-          <p><strong>Game ID:</strong> {{ gameId }}</p>
-          <p><strong>Current Player:</strong> {{ currentPlayer }}</p>
+          <h3>Game Info</h3>
           <p><strong>Turn:</strong> {{ chess.turn() === 'w' ? 'White' : 'Black' }}</p>
         </div>
 
@@ -631,7 +629,7 @@ export default {
   );
   border: 1px solid rgba(197, 212, 255, 0.15);
   border-radius: var(--card-radius, 12px);
-  padding: 1.5rem;
+  padding: 1rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   height: fit-content;
@@ -640,7 +638,7 @@ export default {
 .game-details,
 .move-history,
 .game-controls {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .game-details:last-child,
@@ -651,19 +649,20 @@ export default {
 
 .game-details h3,
 .move-history h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   color: var(--cosmic-figures, #F2F2F2);
   font-family: var(--font-heading, 'Space Grotesk', sans-serif);
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   border-bottom: 1px solid rgba(197, 212, 255, 0.15);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
 }
 
 .game-details p {
-  margin: 0.5rem 0;
+  margin: 0.3rem 0;
   color: var(--cosmic-stars, #C5D4FF);
   font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.9rem;
 }
 
 .game-details p strong {
@@ -672,11 +671,11 @@ export default {
 }
 
 .moves-list {
-  max-height: 250px;
+  max-height: 200px;
   overflow-y: auto;
   border: 1px solid rgba(197, 212, 255, 0.1);
   border-radius: 8px;
-  padding: 0.5rem;
+  padding: 0.4rem;
   background: rgba(10, 13, 20, 0.4);
 }
 
@@ -699,9 +698,9 @@ export default {
 }
 
 .move-item {
-  padding: 0.4rem 0.5rem;
+  padding: 0.3rem 0.4rem;
   font-family: 'Courier New', monospace;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: var(--cosmic-stars, #C5D4FF);
   border-radius: 4px;
   transition: background var(--transition-smooth, 200ms);
