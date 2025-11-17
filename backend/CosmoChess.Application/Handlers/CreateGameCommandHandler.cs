@@ -9,7 +9,7 @@ namespace CosmoChess.Application.Handlers
     {
         public async Task<Guid> Handle(CreateGameCommand request, CancellationToken cancellationToken)
         {
-            var game = new Game(request.CreatorId);
+            var game = new Game(request.CreatorId, request.TimeControl);
             await repository.Add(game, cancellationToken);
             return game.Id;
         }

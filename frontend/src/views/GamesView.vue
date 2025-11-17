@@ -2,9 +2,23 @@
   <div class="games-container">
     <div class="games-header">
       <h1>Chess Games</h1>
-      <button @click="createGame" class="btn btn-success" :disabled="loading">
-        {{ loading ? 'Creating...' : 'Create New Game' }}
-      </button>
+      <div class="header-controls">
+        <select v-model="selectedTimeControl" class="time-control-select">
+          <option value="0">No time control</option>
+          <option value="1">Bullet 1+0</option>
+          <option value="2">Bullet 1+1</option>
+          <option value="3">Blitz 3+0</option>
+          <option value="4">Blitz 3+2</option>
+          <option value="5">Blitz 5+0</option>
+          <option value="6">Rapid 10+0</option>
+          <option value="7">Rapid 10+5</option>
+          <option value="8">Rapid 15+10</option>
+          <option value="9">Daily</option>
+        </select>
+        <button @click="createGame" class="btn btn-success" :disabled="loading">
+          {{ loading ? 'Creating...' : 'Create New Game' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="error" class="error">
@@ -93,7 +107,8 @@ export default {
       loadingGames: false,
       joiningGame: null,
       error: '',
-      refreshInterval: null
+      refreshInterval: null,
+      selectedTimeControl: 0
     }
   },
   computed: {
@@ -180,10 +195,10 @@ export default {
       this.error = ''
 
       try {
-        console.log('Calling gameService.createGame()')
-        const result = await gameService.createGame()
+        console.log('Calling gameService.createGame() with timeControl:', this.selectedTimeControl)
+        const result = await gameService.createGame(parseInt(this.selectedTimeControl))
         console.log('CreateGame result:', result)
-        
+
         if (result.success) {
           console.log('Game created successfully, gameId:', result.gameId)
           await this.loadGames()
@@ -275,6 +290,45 @@ export default {
   font-size: 2rem;
   margin: 0;
   text-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
+}
+
+.header-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.time-control-select {
+  background: linear-gradient(
+    135deg,
+    rgba(27, 35, 64, 0.6) 0%,
+    rgba(40, 50, 86, 0.4) 100%
+  );
+  border: 1px solid rgba(197, 212, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--cosmic-figures, #F2F2F2);
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 1rem;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.time-control-select:hover {
+  border-color: rgba(122, 76, 224, 0.3);
+  box-shadow: 0 0 15px rgba(122, 76, 224, 0.2);
+}
+
+.time-control-select:focus {
+  outline: none;
+  border-color: rgba(122, 76, 224, 0.5);
+  box-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
+}
+
+.time-control-select option {
+  background: #1B2340;
+  color: #F2F2F2;
 }
 
 .games-grid {

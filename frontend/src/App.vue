@@ -107,7 +107,7 @@ body::after {
   );
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(197, 212, 255, 0.1);
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -122,7 +122,7 @@ body::after {
 
 .nav-title {
   font-family: var(--font-heading);
-  font-size: 1.8rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--cosmic-figures);
   letter-spacing: 0.5px;
@@ -170,7 +170,7 @@ body::after {
 
 .main-content {
   flex: 1;
-  padding: 2rem;
+  padding: 1rem;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -178,11 +178,11 @@ body::after {
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
   .nav-title {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
   }
 
   .nav-container {

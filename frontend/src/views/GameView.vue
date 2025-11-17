@@ -1,7 +1,6 @@
 <template>
   <div class="game-container">
     <div class="game-header">
-      <h1>Game #{{ gameId.substring(0, 8) }}</h1>
       <div class="game-info">
         <span class="connection-status" :class="connectionStatusClass">
           {{ connectionStatus }}
@@ -22,21 +21,36 @@
     </div>
 
     <div class="game-board">
-      <div class="chessboard-container">
-        <div class="board-wrapper">
-          <TheChessboard
-            :board-config="boardConfig"
-            @board-created="(api) => (boardAPI = api)"
-            @move="onMove"
-          />
+      <div class="board-section">
+        <GameTimer
+          v-if="hasTimeControl"
+          :timeSeconds="blackTimeRemaining"
+          :isActive="chess.turn() === 'b' && gameResult === 1"
+          label="Black"
+        />
+
+        <div class="chessboard-container">
+          <div class="board-wrapper">
+            <TheChessboard
+              :board-config="boardConfig"
+              @board-created="(api) => (boardAPI = api)"
+              @move="onMove"
+            />
+          </div>
         </div>
+
+        <GameTimer
+          v-if="hasTimeControl"
+          :timeSeconds="whiteTimeRemaining"
+          :isActive="chess.turn() === 'w' && gameResult === 1"
+          label="White"
+        />
       </div>
-      
+
       <div class="game-sidebar">
         <div class="game-details">
-          <h3>Game Details</h3>
-          <p><strong>Game ID:</strong> {{ gameId }}</p>
-          <p><strong>Current Player:</strong> {{ currentPlayer }}</p>
+          <h3>Game Info</h3>
+          <p><strong>ID:</strong> {{ gameId.substring(0, 8) }}</p>
           <p><strong>Turn:</strong> {{ chess.turn() === 'w' ? 'White' : 'Black' }}</p>
         </div>
 
@@ -67,11 +81,13 @@ import { gameService } from '../services/gameService'
 import { authService } from '../services/authService'
 import { gameConnectionService } from '../services/gameConnectionService'
 import { markRaw } from 'vue'
+import GameTimer from '../components/GameTimer.vue'
 
 export default {
   name: 'GameView',
   components: {
-    TheChessboard
+    TheChessboard,
+    GameTimer
   },
   props: {
     gameId: {
@@ -90,7 +106,10 @@ export default {
       moveHistory: [],
       loading: true,
       currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', // Track FEN manually
-      connectionStatus: 'Disconnected'
+      connectionStatus: 'Disconnected',
+      whiteTimeRemaining: 0,
+      blackTimeRemaining: 0,
+      timerInterval: null
     }
   },
   computed: {
@@ -155,14 +174,24 @@ export default {
         'status-connecting': this.connectionStatus === 'Connecting' || this.connectionStatus === 'Reconnecting',
         'status-disconnected': this.connectionStatus === 'Disconnected'
       }
+    },
+
+    hasTimeControl() {
+      return this.game && this.game.timeControl !== 0
+    },
+
+    gameResult() {
+      return this.game?.gameResult || 0
     }
   },
   async mounted() {
     await this.initializeGame()
     await this.setupRealtimeConnection()
+    this.startTimer()
   },
   async unmounted() {
     await this.cleanupRealtimeConnection()
+    this.stopTimer()
   },
   watch: {
     currentFen(newFen) {
@@ -192,6 +221,10 @@ export default {
             this.moveHistory = result.game.moves.map(m => m.move)
             console.log('Loaded move history:', this.moveHistory)
           }
+
+          // Load timer data
+          this.whiteTimeRemaining = result.game.whiteTimeRemainingSeconds || 0
+          this.blackTimeRemaining = result.game.blackTimeRemainingSeconds || 0
 
           console.log('Game loaded:', this.game)
         } else {
@@ -269,9 +302,19 @@ export default {
       console.log('Current user ID:', currentUserId)
       console.log('Move from user ID:', data.userId)
 
-      // Don't apply the move if it's from the current user (already applied locally)
+      // Always update timers regardless of who made the move
+      if (data.whiteTimeRemainingSeconds !== undefined) {
+        this.whiteTimeRemaining = data.whiteTimeRemainingSeconds
+        console.log('Updated white timer:', this.whiteTimeRemaining)
+      }
+      if (data.blackTimeRemainingSeconds !== undefined) {
+        this.blackTimeRemaining = data.blackTimeRemainingSeconds
+        console.log('Updated black timer:', this.blackTimeRemaining)
+      }
+
+      // Don't apply the board position if it's from the current user (already applied locally)
       if (data.userId === currentUserId) {
-        console.log('Ignoring own move')
+        console.log('Own move - timers updated, skipping board update')
         return
       }
 
@@ -316,6 +359,8 @@ export default {
       // Show notification that opponent joined
       if (this.game) {
         this.game.blackPlayerId = data.playerId
+        this.game.gameResult = 1 // Set to InProgress
+        console.log('Game started - gameResult set to InProgress')
       }
     },
 
@@ -399,6 +444,38 @@ export default {
 
     goBack() {
       this.$router.push('/games')
+    },
+
+    startTimer() {
+      // Update timer every second
+      this.timerInterval = setInterval(() => {
+        // Only tick if time control is enabled and game has started (both players present or in progress)
+        const gameStarted = this.gameResult === 1 || (this.game?.blackPlayerId && this.game?.whitePlayerId)
+
+        if (this.hasTimeControl && gameStarted) {
+          // Game is in progress - decrease time for current player
+          if (this.chess.turn() === 'w') {
+            this.whiteTimeRemaining = Math.max(0, this.whiteTimeRemaining - 1)
+            if (this.whiteTimeRemaining === 0) {
+              this.error = 'White ran out of time! Black wins.'
+              this.stopTimer()
+            }
+          } else {
+            this.blackTimeRemaining = Math.max(0, this.blackTimeRemaining - 1)
+            if (this.blackTimeRemaining === 0) {
+              this.error = 'Black ran out of time! White wins.'
+              this.stopTimer()
+            }
+          }
+        }
+      }, 1000)
+    },
+
+    stopTimer() {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval)
+        this.timerInterval = null
+      }
     }
   }
 }
@@ -412,32 +489,28 @@ export default {
 
 .game-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
   border-bottom: 1px solid rgba(197, 212, 255, 0.2);
-}
-
-.game-header h1 {
-  color: var(--cosmic-figures, #F2F2F2);
-  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
-  font-weight: 700;
-  font-size: 2rem;
-  margin: 0;
-  text-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
 }
 
 .game-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.game-info .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
 }
 
 .game-status {
   font-weight: 600;
   color: var(--cosmic-action-primary, #7A4CE0);
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-family: var(--font-body, 'Inter', sans-serif);
   text-shadow: 0 0 10px rgba(122, 76, 224, 0.4);
 }
@@ -445,11 +518,12 @@ export default {
 .suggestion {
   background: rgba(122, 76, 224, 0.15);
   border: 1px solid rgba(122, 76, 224, 0.3);
-  border-radius: var(--card-radius, 12px);
-  padding: 1rem;
-  margin-bottom: 1rem;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
   color: var(--cosmic-stars, #C5D4FF);
   backdrop-filter: blur(10px);
+  font-size: 0.9rem;
 }
 
 .suggestion strong {
@@ -458,45 +532,52 @@ export default {
 
 .game-board {
   display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 2rem;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
   align-items: start;
 }
 
-@media (max-width: 1024px) {
+.board-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 550px;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
   .game-board {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+
+  .board-section {
+    margin: 0 auto;
   }
 }
 
 @media (max-width: 768px) {
   .game-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .game-header h1 {
-    font-size: 1.5rem;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.3rem;
   }
 
   .game-info {
     flex-wrap: wrap;
-    width: 100%;
+    gap: 0.5rem;
   }
 
   .main-content {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
   .connection-status {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
   }
 
   .game-status {
-    font-size: 1rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -508,17 +589,18 @@ export default {
   );
   border: 1px solid rgba(197, 212, 255, 0.15);
   border-radius: var(--card-radius, 12px);
-  padding: 1.5rem;
+  padding: 0.75rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(122, 76, 224, 0.1);
-  max-width: 650px;
+  max-width: 550px;
   margin: 0 auto;
   min-width: 280px;
+  box-sizing: border-box;
 }
 
 .board-wrapper {
   width: 100%;
-  max-width: 600px;
+  max-width: 100%;
   margin: 0 auto;
   aspect-ratio: 1 / 1;
   position: relative;
@@ -532,7 +614,7 @@ export default {
   );
   border: 1px solid rgba(197, 212, 255, 0.15);
   border-radius: var(--card-radius, 12px);
-  padding: 1.5rem;
+  padding: 1rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   height: fit-content;
@@ -541,7 +623,7 @@ export default {
 .game-details,
 .move-history,
 .game-controls {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .game-details:last-child,
@@ -552,19 +634,20 @@ export default {
 
 .game-details h3,
 .move-history h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   color: var(--cosmic-figures, #F2F2F2);
   font-family: var(--font-heading, 'Space Grotesk', sans-serif);
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   border-bottom: 1px solid rgba(197, 212, 255, 0.15);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
 }
 
 .game-details p {
-  margin: 0.5rem 0;
+  margin: 0.3rem 0;
   color: var(--cosmic-stars, #C5D4FF);
   font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.9rem;
 }
 
 .game-details p strong {
@@ -573,11 +656,11 @@ export default {
 }
 
 .moves-list {
-  max-height: 250px;
+  max-height: 200px;
   overflow-y: auto;
   border: 1px solid rgba(197, 212, 255, 0.1);
   border-radius: 8px;
-  padding: 0.5rem;
+  padding: 0.4rem;
   background: rgba(10, 13, 20, 0.4);
 }
 
@@ -600,9 +683,9 @@ export default {
 }
 
 .move-item {
-  padding: 0.4rem 0.5rem;
+  padding: 0.3rem 0.4rem;
   font-family: 'Courier New', monospace;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: var(--cosmic-stars, #C5D4FF);
   border-radius: 4px;
   transition: background var(--transition-smooth, 200ms);
@@ -725,7 +808,7 @@ coords {
 /* Mobile responsiveness for chessboard */
 @media (max-width: 768px) {
   .chessboard-container {
-    padding: 0.5rem;
+    padding: 0.4rem;
     max-width: 100vw;
     width: 100%;
     margin: 0;
@@ -736,8 +819,23 @@ coords {
     max-width: 100%;
   }
 
+  .board-section {
+    gap: 0.4rem;
+    max-width: 100%;
+  }
+
   coords {
     font-size: 0.6rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .chessboard-container {
+    padding: 0.3rem;
+  }
+
+  .board-section {
+    gap: 0.3rem;
   }
 }
 

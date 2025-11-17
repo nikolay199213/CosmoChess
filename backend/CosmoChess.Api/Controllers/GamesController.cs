@@ -62,6 +62,9 @@ namespace CosmoChess.Api.Controllers
         {
             await mediator.Send(command);
 
+            // Get updated game state with timers
+            var game = await mediator.Send(new GetGameByIdQuery(command.GameId));
+
             // Notify all players in the game room about the move
             var gameGroupName = $"game_{command.GameId}";
             await hubContext.Clients.Group(gameGroupName).SendAsync(
@@ -71,7 +74,9 @@ namespace CosmoChess.Api.Controllers
                     gameId = command.GameId,
                     userId = command.UserId,
                     move = command.Move,
-                    newFen = command.NewFen
+                    newFen = command.NewFen,
+                    whiteTimeRemainingSeconds = game?.WhiteTimeRemainingSeconds ?? 0,
+                    blackTimeRemainingSeconds = game?.BlackTimeRemainingSeconds ?? 0
                 });
 
             return Ok();

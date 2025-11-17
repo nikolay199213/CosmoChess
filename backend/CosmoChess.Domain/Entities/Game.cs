@@ -16,15 +16,27 @@ namespace CosmoChess.Domain.Entities
         public GameEndReason EndReason { get; private set; } = GameEndReason.None;
         public string CurrentFen { get; private set; } = InitialFen;
 
-        public Game(Guid whitePlayerId)
+        // Timer fields
+        public TimeControl TimeControl { get; private set; } = TimeControl.None;
+        public int WhiteTimeRemainingSeconds { get; private set; }
+        public int BlackTimeRemainingSeconds { get; private set; }
+        public DateTime? LastMoveTime { get; private set; }
+
+        public Game(Guid whitePlayerId, TimeControl timeControl = TimeControl.None)
         {
             WhitePlayerId = whitePlayerId;
+            TimeControl = timeControl;
+
+            var settings = new TimeControlSettings(timeControl);
+            WhiteTimeRemainingSeconds = settings.InitialTimeSeconds;
+            BlackTimeRemainingSeconds = settings.InitialTimeSeconds;
         }
 
         public void Join(Guid blackPlayerId)
         {
             BlackPlayerId = blackPlayerId;
             GameResult = GameResult.InProgress;
+            LastMoveTime = DateTime.UtcNow; // Start the timer when game begins
         }
 
         public Guid WhitePlayerId { get; private set; }
@@ -47,9 +59,44 @@ namespace CosmoChess.Domain.Entities
                 throw new InvalidOperationException("It's black's turn");
             }
 
+            // Update time if time control is active
+            if (TimeControl != TimeControl.None && LastMoveTime.HasValue)
+            {
+                var timeElapsed = (int)(DateTime.UtcNow - LastMoveTime.Value).TotalSeconds;
+                var settings = new TimeControlSettings(TimeControl);
+
+                if (isWhiteTurn)
+                {
+                    WhiteTimeRemainingSeconds -= timeElapsed;
+                    if (WhiteTimeRemainingSeconds <= 0)
+                    {
+                        WhiteTimeRemainingSeconds = 0;
+                        GameResult = GameResult.BlackWins;
+                        EndReason = GameEndReason.Timeout;
+                        throw new InvalidOperationException("White ran out of time");
+                    }
+                    // Add increment
+                    WhiteTimeRemainingSeconds += settings.IncrementSeconds;
+                }
+                else
+                {
+                    BlackTimeRemainingSeconds -= timeElapsed;
+                    if (BlackTimeRemainingSeconds <= 0)
+                    {
+                        BlackTimeRemainingSeconds = 0;
+                        GameResult = GameResult.WhiteWins;
+                        EndReason = GameEndReason.Timeout;
+                        throw new InvalidOperationException("Black ran out of time");
+                    }
+                    // Add increment
+                    BlackTimeRemainingSeconds += settings.IncrementSeconds;
+                }
+            }
+
             var gameMove = new GameMove(Id, userId, move, newFen, DateTime.UtcNow);
             _moves.Add(gameMove);
             CurrentFen = newFen;
+            LastMoveTime = DateTime.UtcNow;
         }
     }
 }
