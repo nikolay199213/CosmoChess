@@ -304,9 +304,19 @@ export default {
       console.log('Current user ID:', currentUserId)
       console.log('Move from user ID:', data.userId)
 
-      // Don't apply the move if it's from the current user (already applied locally)
+      // Always update timers regardless of who made the move
+      if (data.whiteTimeRemainingSeconds !== undefined) {
+        this.whiteTimeRemaining = data.whiteTimeRemainingSeconds
+        console.log('Updated white timer:', this.whiteTimeRemaining)
+      }
+      if (data.blackTimeRemainingSeconds !== undefined) {
+        this.blackTimeRemaining = data.blackTimeRemainingSeconds
+        console.log('Updated black timer:', this.blackTimeRemaining)
+      }
+
+      // Don't apply the board position if it's from the current user (already applied locally)
       if (data.userId === currentUserId) {
-        console.log('Ignoring own move')
+        console.log('Own move - timers updated, skipping board update')
         return
       }
 
@@ -327,14 +337,6 @@ export default {
           if (move) {
             this.moveHistory.push(move.san)
           }
-        }
-
-        // Update timers if provided
-        if (data.whiteTimeRemainingSeconds !== undefined) {
-          this.whiteTimeRemaining = data.whiteTimeRemainingSeconds
-        }
-        if (data.blackTimeRemainingSeconds !== undefined) {
-          this.blackTimeRemaining = data.blackTimeRemainingSeconds
         }
 
         // Update the board - this triggers boardConfig recomputation
