@@ -361,6 +361,8 @@ export default {
       // Show notification that opponent joined
       if (this.game) {
         this.game.blackPlayerId = data.playerId
+        this.game.gameResult = 1 // Set to InProgress
+        console.log('Game started - gameResult set to InProgress')
       }
     },
 
@@ -449,17 +451,22 @@ export default {
     startTimer() {
       // Update timer every second
       this.timerInterval = setInterval(() => {
-        if (this.hasTimeControl && this.gameResult === 1) {
-          // Game is in progress
+        // Only tick if time control is enabled and game has started (both players present or in progress)
+        const gameStarted = this.gameResult === 1 || (this.game?.blackPlayerId && this.game?.whitePlayerId)
+
+        if (this.hasTimeControl && gameStarted) {
+          // Game is in progress - decrease time for current player
           if (this.chess.turn() === 'w') {
             this.whiteTimeRemaining = Math.max(0, this.whiteTimeRemaining - 1)
             if (this.whiteTimeRemaining === 0) {
               this.error = 'White ran out of time! Black wins.'
+              this.stopTimer()
             }
           } else {
             this.blackTimeRemaining = Math.max(0, this.blackTimeRemaining - 1)
             if (this.blackTimeRemaining === 0) {
               this.error = 'Black ran out of time! White wins.'
+              this.stopTimer()
             }
           }
         }
