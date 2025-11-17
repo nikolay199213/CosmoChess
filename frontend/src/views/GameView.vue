@@ -493,8 +493,8 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(197, 212, 255, 0.2);
 }
 
@@ -502,7 +502,7 @@ export default {
   color: var(--cosmic-figures, #F2F2F2);
   font-family: var(--font-heading, 'Space Grotesk', sans-serif);
   font-weight: 700;
-  font-size: 2rem;
+  font-size: 1.3rem;
   margin: 0;
   text-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
 }
@@ -510,13 +510,18 @@ export default {
 .game-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.game-info .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
 }
 
 .game-status {
   font-weight: 600;
   color: var(--cosmic-action-primary, #7A4CE0);
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-family: var(--font-body, 'Inter', sans-serif);
   text-shadow: 0 0 10px rgba(122, 76, 224, 0.4);
 }
@@ -524,11 +529,12 @@ export default {
 .suggestion {
   background: rgba(122, 76, 224, 0.15);
   border: 1px solid rgba(122, 76, 224, 0.3);
-  border-radius: var(--card-radius, 12px);
-  padding: 1rem;
-  margin-bottom: 1rem;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
   color: var(--cosmic-stars, #C5D4FF);
   backdrop-filter: blur(10px);
+  font-size: 0.9rem;
 }
 
 .suggestion strong {
@@ -537,8 +543,8 @@ export default {
 
 .game-board {
   display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 2rem;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
   align-items: start;
 }
 
@@ -547,13 +553,17 @@ export default {
   flex-direction: column;
   gap: 0.75rem;
   max-width: 550px;
-  margin: 0 auto;
+  width: 100%;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .game-board {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+
+  .board-section {
+    margin: 0 auto;
   }
 }
 
@@ -561,29 +571,31 @@ export default {
   .game-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
   }
 
   .game-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
   }
 
   .game-info {
     flex-wrap: wrap;
     width: 100%;
+    gap: 0.5rem;
   }
 
   .main-content {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
   .connection-status {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
   }
 
   .game-status {
-    font-size: 1rem;
+    font-size: 0.8rem;
   }
 }
 
