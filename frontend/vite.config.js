@@ -10,13 +10,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-        secure: false
-      },
-      '/gameHub': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
         secure: false,
-        ws: true
+        ws: true  // Поддержка WebSocket для SignalR
       }
     }
   },
