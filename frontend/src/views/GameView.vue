@@ -1,7 +1,6 @@
 <template>
   <div class="game-container">
     <div class="game-header">
-      <h1>Game #{{ gameId.substring(0, 8) }}</h1>
       <div class="game-info">
         <span class="connection-status" :class="connectionStatusClass">
           {{ connectionStatus }}
@@ -51,6 +50,7 @@
       <div class="game-sidebar">
         <div class="game-details">
           <h3>Game Info</h3>
+          <p><strong>ID:</strong> {{ gameId.substring(0, 8) }}</p>
           <p><strong>Turn:</strong> {{ chess.turn() === 'w' ? 'White' : 'Black' }}</p>
         </div>
 
@@ -489,20 +489,11 @@ export default {
 
 .game-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
   border-bottom: 1px solid rgba(197, 212, 255, 0.2);
-}
-
-.game-header h1 {
-  color: var(--cosmic-figures, #F2F2F2);
-  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
-  font-weight: 700;
-  font-size: 1.3rem;
-  margin: 0;
-  text-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
 }
 
 .game-info {
@@ -549,7 +540,7 @@ export default {
 .board-section {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   max-width: 550px;
   width: 100%;
 }
@@ -567,19 +558,12 @@ export default {
 
 @media (max-width: 768px) {
   .game-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .game-header h1 {
-    font-size: 1.1rem;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.3rem;
   }
 
   .game-info {
     flex-wrap: wrap;
-    width: 100%;
     gap: 0.5rem;
   }
 
@@ -605,12 +589,13 @@ export default {
   );
   border: 1px solid rgba(197, 212, 255, 0.15);
   border-radius: var(--card-radius, 12px);
-  padding: 1rem;
+  padding: 0.75rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(122, 76, 224, 0.1);
   max-width: 550px;
   margin: 0 auto;
   min-width: 280px;
+  box-sizing: border-box;
 }
 
 .board-wrapper {
@@ -823,7 +808,7 @@ coords {
 /* Mobile responsiveness for chessboard */
 @media (max-width: 768px) {
   .chessboard-container {
-    padding: 0.5rem;
+    padding: 0.4rem;
     max-width: 100vw;
     width: 100%;
     margin: 0;
@@ -835,7 +820,7 @@ coords {
   }
 
   .board-section {
-    gap: 0.5rem;
+    gap: 0.4rem;
     max-width: 100%;
   }
 
@@ -846,11 +831,11 @@ coords {
 
 @media (max-width: 480px) {
   .chessboard-container {
-    padding: 0.25rem;
+    padding: 0.3rem;
   }
 
   .board-section {
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
 }
 
