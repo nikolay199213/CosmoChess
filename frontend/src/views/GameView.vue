@@ -545,7 +545,9 @@ export default {
 .board-section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
+  max-width: 550px;
+  margin: 0 auto;
 }
 
 @media (max-width: 1024px) {
@@ -593,17 +595,17 @@ export default {
   );
   border: 1px solid rgba(197, 212, 255, 0.15);
   border-radius: var(--card-radius, 12px);
-  padding: 1.5rem;
+  padding: 1rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(122, 76, 224, 0.1);
-  max-width: 650px;
+  max-width: 550px;
   margin: 0 auto;
   min-width: 280px;
 }
 
 .board-wrapper {
   width: 100%;
-  max-width: 600px;
+  max-width: 100%;
   margin: 0 auto;
   aspect-ratio: 1 / 1;
   position: relative;
@@ -821,8 +823,23 @@ coords {
     max-width: 100%;
   }
 
+  .board-section {
+    gap: 0.5rem;
+    max-width: 100%;
+  }
+
   coords {
     font-size: 0.6rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .chessboard-container {
+    padding: 0.25rem;
+  }
+
+  .board-section {
+    gap: 0.4rem;
   }
 }
 

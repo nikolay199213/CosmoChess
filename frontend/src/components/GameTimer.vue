@@ -47,8 +47,8 @@ export default {
     rgba(40, 50, 86, 0.4) 100%
   );
   border: 1px solid rgba(197, 212, 255, 0.15);
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
@@ -76,15 +76,17 @@ export default {
 
 .timer-label {
   color: var(--cosmic-stars, #C5D4FF);
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-family: var(--font-body, 'Inter', sans-serif);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .timer-display {
   color: var(--cosmic-figures, #F2F2F2);
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   font-family: 'Courier New', monospace;
   text-align: center;
@@ -98,15 +100,15 @@ export default {
 
 @media (max-width: 768px) {
   .game-timer {
-    padding: 0.75rem 1rem;
+    padding: 0.4rem 0.75rem;
   }
 
   .timer-label {
-    font-size: 0.8rem;
+    font-size: 0.65rem;
   }
 
   .timer-display {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
 }
 </style>
