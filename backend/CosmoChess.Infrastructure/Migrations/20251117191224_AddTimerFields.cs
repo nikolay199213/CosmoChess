@@ -1,3 +1,4 @@
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,20 +12,6 @@ namespace CosmoChess.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
-                name: "TimeControl",
-                table: "games",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
-
-            migrationBuilder.AddColumn<int>(
-                name: "WhiteTimeRemainingSeconds",
-                table: "games",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
-
-            migrationBuilder.AddColumn<int>(
                 name: "BlackTimeRemainingSeconds",
                 table: "games",
                 type: "integer",
@@ -36,25 +23,39 @@ namespace CosmoChess.Infrastructure.Migrations
                 table: "games",
                 type: "timestamp with time zone",
                 nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "TimeControl",
+                table: "games",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
+
+            migrationBuilder.AddColumn<int>(
+                name: "WhiteTimeRemainingSeconds",
+                table: "games",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "TimeControl",
-                table: "games");
-
-            migrationBuilder.DropColumn(
-                name: "WhiteTimeRemainingSeconds",
-                table: "games");
-
-            migrationBuilder.DropColumn(
                 name: "BlackTimeRemainingSeconds",
                 table: "games");
 
             migrationBuilder.DropColumn(
                 name: "LastMoveTime",
+                table: "games");
+
+            migrationBuilder.DropColumn(
+                name: "TimeControl",
+                table: "games");
+
+            migrationBuilder.DropColumn(
+                name: "WhiteTimeRemainingSeconds",
                 table: "games");
         }
     }
