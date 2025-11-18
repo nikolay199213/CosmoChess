@@ -1,7 +1,7 @@
-using CosmoChess.Domain.Entities;
+using CosmoChess.Application.DTOs;
 using MediatR;
 
 namespace CosmoChess.Application.Commands
 {
-    public record GetGameByIdQuery(Guid GameId) : IRequest<Game?>;
+    public record GetGameByIdQuery(Guid GameId) : IRequest<GameWithPlayersDto?>;
 }

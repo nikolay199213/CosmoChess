@@ -1,6 +1,7 @@
-﻿﻿using CosmoChess.Api.Hubs;
+using CosmoChess.Api.Hubs;
 using CosmoChess.Application.Commands;
 using CosmoChess.Domain.Entities;
+using CosmoChess.Domain.Interface.Repositories;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,7 @@ namespace CosmoChess.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class GamesController(IMediator mediator, IHubContext<GameHub> hubContext) : ControllerBase
+    public class GamesController(IMediator mediator, IHubContext<GameHub> hubContext, IUserRepository userRepository) : ControllerBase
     {
         [HttpGet("wait-join")]
         public async Task<List<Game>> GetGamesForJoin()
@@ -24,12 +25,12 @@ namespace CosmoChess.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var game = await mediator.Send(new GetGameByIdQuery(id));
-            if (game == null)
+            var gameDto = await mediator.Send(new GetGameByIdQuery(id));
+            if (gameDto == null)
             {
                 return NotFound();
             }
-            return Ok(game);
+            return Ok(gameDto);
         }
 
         [HttpPost("create")]
@@ -44,6 +45,10 @@ namespace CosmoChess.Api.Controllers
         {
             await mediator.Send(command);
 
+            // Get username for the joining player
+            var joiningPlayer = await userRepository.GetByIdAsync(command.PlayerId);
+            var username = joiningPlayer?.Username ?? "Player";
+
             // Notify all players in the game room that a new player joined
             var gameGroupName = $"game_{command.GameId}";
             await hubContext.Clients.Group(gameGroupName).SendAsync(
@@ -51,7 +56,8 @@ namespace CosmoChess.Api.Controllers
                 new
                 {
                     gameId = command.GameId,
-                    playerId = command.PlayerId
+                    playerId = command.PlayerId,
+                    username = username
                 });
 
             return Ok();

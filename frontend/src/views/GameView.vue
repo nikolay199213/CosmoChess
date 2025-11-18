@@ -26,8 +26,11 @@
           v-if="hasTimeControl"
           :timeSeconds="blackTimeRemaining"
           :isActive="chess.turn() === 'b' && gameResult === 1"
-          label="Black"
+          :label="blackPlayerLabel"
         />
+        <div v-else class="player-info player-black">
+          <span class="player-name">{{ blackPlayerLabel }}</span>
+        </div>
 
         <div class="chessboard-container">
           <div class="board-wrapper">
@@ -43,8 +46,11 @@
           v-if="hasTimeControl"
           :timeSeconds="whiteTimeRemaining"
           :isActive="chess.turn() === 'w' && gameResult === 1"
-          label="White"
+          :label="whitePlayerLabel"
         />
+        <div v-else class="player-info player-white">
+          <span class="player-name">{{ whitePlayerLabel }}</span>
+        </div>
       </div>
 
       <div class="game-sidebar">
@@ -128,6 +134,7 @@ export default {
       return {
         fen: this.currentFen,
         orientation: 'white',
+        coordinates: true,
         movable: {
           free: false,
           color: this.chess.turn() === 'w' ? 'white' : 'black',
@@ -182,6 +189,14 @@ export default {
 
     gameResult() {
       return this.game?.gameResult || 0
+    },
+
+    blackPlayerLabel() {
+      return this.game?.blackPlayerUsername || 'Waiting...'
+    },
+
+    whitePlayerLabel() {
+      return this.game?.whitePlayerUsername || 'White'
     }
   },
   async mounted() {
@@ -359,6 +374,7 @@ export default {
       // Show notification that opponent joined
       if (this.game) {
         this.game.blackPlayerId = data.playerId
+        this.game.blackPlayerUsername = data.username || 'Player'
         this.game.gameResult = 1 // Set to InProgress
         console.log('Game started - gameResult set to InProgress')
       }
@@ -449,10 +465,9 @@ export default {
     startTimer() {
       // Update timer every second
       this.timerInterval = setInterval(() => {
-        // Only tick if time control is enabled and game has started (both players present or in progress)
-        const gameStarted = this.gameResult === 1 || (this.game?.blackPlayerId && this.game?.whitePlayerId)
-
-        if (this.hasTimeControl && gameStarted) {
+        // Only tick if time control is enabled and game is in progress (gameResult === 1)
+        // This ensures timer doesn't start until second player joins
+        if (this.hasTimeControl && this.gameResult === 1) {
           // Game is in progress - decrease time for current player
           if (this.chess.turn() === 'w') {
             this.whiteTimeRemaining = Math.max(0, this.whiteTimeRemaining - 1)
@@ -582,16 +597,6 @@ export default {
 }
 
 .chessboard-container {
-  background: linear-gradient(
-    135deg,
-    rgba(27, 35, 64, 0.6) 0%,
-    rgba(40, 50, 86, 0.4) 100%
-  );
-  border: 1px solid rgba(197, 212, 255, 0.15);
-  border-radius: var(--card-radius, 12px);
-  padding: 0.75rem;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(122, 76, 224, 0.1);
   max-width: 550px;
   margin: 0 auto;
   min-width: 280px;
@@ -704,6 +709,24 @@ export default {
   width: 100%;
 }
 
+.player-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background: rgba(27, 35, 64, 0.6);
+  border: 1px solid rgba(197, 212, 255, 0.15);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.player-name {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cosmic-figures, #F2F2F2);
+}
+
 .connection-status {
   font-size: 0.9rem;
   padding: 0.4rem 0.9rem;
@@ -808,7 +831,6 @@ coords {
 /* Mobile responsiveness for chessboard */
 @media (max-width: 768px) {
   .chessboard-container {
-    padding: 0.4rem;
     max-width: 100vw;
     width: 100%;
     margin: 0;
@@ -830,10 +852,6 @@ coords {
 }
 
 @media (max-width: 480px) {
-  .chessboard-container {
-    padding: 0.3rem;
-  }
-
   .board-section {
     gap: 0.3rem;
   }
