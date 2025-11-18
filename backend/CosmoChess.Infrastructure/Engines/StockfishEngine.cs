@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Threading.Channels;
+using CosmoChess.Domain;
 using CosmoChess.Domain.Interface.Engines;
 
 namespace CosmoChess.Infrastructure.Engines
@@ -8,10 +10,18 @@ namespace CosmoChess.Infrastructure.Engines
     public class StockfishEngine : IHostedService, IEngineService
     {
         private readonly Channel<StockfishRequest> _queue = Channel.CreateUnbounded<StockfishRequest>();
+        private readonly string _stockfishPath;
+        private readonly ILogger<StockfishEngine> _logger;
         private Process _stockfishProcess;
         private StreamWriter _input;
         private StreamReader _output;
         private Task _processingTask;
+
+        public StockfishEngine(AppConfiguration configuration, ILogger<StockfishEngine> logger)
+        {
+            _stockfishPath = configuration.StockfishPath;
+            _logger = logger;
+        }
         public Task StartAsync(CancellationToken cancellationToken)
         {
             StartStockfish();
@@ -21,11 +31,13 @@ namespace CosmoChess.Infrastructure.Engines
 
         private void StartStockfish()
         {
+            _logger.LogInformation("Starting Stockfish from: {Path}", _stockfishPath);
+
             _stockfishProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "stockfish", // путь к бинарнику Stockfish
+                    FileName = _stockfishPath,
                     RedirectStandardInput = true,
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
@@ -35,6 +47,8 @@ namespace CosmoChess.Infrastructure.Engines
             _stockfishProcess.Start();
             _input = _stockfishProcess.StandardInput;
             _output = _stockfishProcess.StandardOutput;
+
+            _logger.LogInformation("Stockfish started successfully");
         }
 
         public async Task<string> AnalyzeAsync(string fen, int depth, CancellationToken cancellationToken)

@@ -36,7 +36,9 @@ builder.Services.AddJwtAuthentication();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<IEngineService, StockfishEngine>();
+builder.Services.AddSingleton<StockfishEngine>();
+builder.Services.AddSingleton<IEngineService>(sp => sp.GetRequiredService<StockfishEngine>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<StockfishEngine>());
 
 builder.Services.AddSwaggerGen(c =>
 {

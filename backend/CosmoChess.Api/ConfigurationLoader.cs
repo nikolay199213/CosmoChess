@@ -9,6 +9,7 @@ namespace CosmoChess.Api
             // User Secret Key -> Environment Variable Name
             ["Jwt:Key"] = "JWT_KEY",
             ["ConnectionStrings:DefaultConnection"] = "DB_CONNECTION_STRING",
+            ["Stockfish:Path"] = "STOCKFISH_PATH",
         };
         public static WebApplicationBuilder SetupConfiguration(this WebApplicationBuilder builder)
         {

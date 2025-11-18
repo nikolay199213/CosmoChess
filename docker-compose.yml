@@ -25,8 +25,9 @@ services:
       dockerfile: CosmoChess.Api/Dockerfile
     container_name: cosmochess-backend
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=cosmochess;Username=postgres;Password=password123
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DB_CONNECTION_STRING=Host=postgres;Database=cosmochess;Username=postgres;Password=password123
+      - STOCKFISH_PATH=/usr/games/stockfish
     expose:
       - "5000"
     depends_on:
