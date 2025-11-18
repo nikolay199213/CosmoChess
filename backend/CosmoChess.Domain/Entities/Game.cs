@@ -42,7 +42,7 @@ namespace CosmoChess.Domain.Entities
         public Guid WhitePlayerId { get; private set; }
         public Guid BlackPlayerId { get; private set; }
 
-        public void MakeMove(Guid userId, string move, string newFen)
+        public void MakeMove(Guid userId, string move, string newFen, bool isCheckmate = false, bool isStalemate = false, bool isDraw = false)
         {
             // Validate that it's the player's turn
             var isWhiteTurn = CurrentFen.Contains(" w ");
@@ -97,6 +97,24 @@ namespace CosmoChess.Domain.Entities
             _moves.Add(gameMove);
             CurrentFen = newFen;
             LastMoveTime = DateTime.UtcNow;
+
+            // Check for game end conditions
+            if (isCheckmate)
+            {
+                // The player who just moved wins
+                GameResult = isWhiteTurn ? GameResult.WhiteWins : GameResult.BlackWins;
+                EndReason = GameEndReason.Checkmate;
+            }
+            else if (isStalemate)
+            {
+                GameResult = GameResult.Draw;
+                EndReason = GameEndReason.Stalemate;
+            }
+            else if (isDraw)
+            {
+                GameResult = GameResult.Draw;
+                EndReason = GameEndReason.Draw;
+            }
         }
     }
 }

@@ -589,11 +589,19 @@ export default {
         this.currentMoveIndex = this.moveHistory.length
         this.currentFen = this.chess.fen()
 
+        // Check for game end conditions
+        const gameEndInfo = {
+          isCheckmate: this.chess.isCheckmate(),
+          isStalemate: this.chess.isStalemate(),
+          isDraw: this.chess.isDraw() && !this.chess.isStalemate()
+        }
+
         // Send move to backend
         gameService.makeMove(
           this.gameId,
           chessMove.san,
-          this.chess.fen()
+          this.chess.fen(),
+          gameEndInfo
         ).then(result => {
           if (!result.success) {
             this.chess.undo()

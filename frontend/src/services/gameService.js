@@ -73,7 +73,7 @@ class GameService {
     }
   }
 
-  async makeMove(gameId, move, newFen) {
+  async makeMove(gameId, move, newFen, gameEndInfo = {}) {
     try {
       const userId = authService.getUserId()
       if (!userId) {
@@ -84,15 +84,18 @@ class GameService {
         GameId: gameId,
         UserId: userId,
         Move: move,
-        NewFen: newFen
+        NewFen: newFen,
+        IsCheckmate: gameEndInfo.isCheckmate || false,
+        IsStalemate: gameEndInfo.isStalemate || false,
+        IsDraw: gameEndInfo.isDraw || false
       })
-      
+
       return { success: true }
     } catch (error) {
       console.error('Error making move:', error)
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Failed to make move' 
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to make move'
       }
     }
   }
