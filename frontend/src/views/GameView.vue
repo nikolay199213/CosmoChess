@@ -6,8 +6,24 @@
           {{ connectionStatus }}
         </span>
         <span class="game-status">{{ gameStatus }}</span>
-        <button @click="toggleAnalysisMode" class="btn" :class="analysisMode ? 'btn-active' : 'btn-secondary'">
+        <button
+          v-if="isGameOver"
+          @click="toggleAnalysisMode"
+          class="btn"
+          :class="analysisMode ? 'btn-active' : 'btn-secondary'"
+        >
           {{ analysisMode ? 'Exit Analysis' : 'Analyze' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Over Notification -->
+    <div v-if="isGameOver && !analysisMode" class="game-over-banner">
+      <div class="game-over-content">
+        <span class="game-over-icon">{{ gameOverIcon }}</span>
+        <span class="game-over-text">{{ gameOverMessage }}</span>
+        <button @click="toggleAnalysisMode" class="btn btn-primary btn-small">
+          Analyze Game
         </button>
       </div>
     </div>
@@ -16,7 +32,7 @@
       {{ error }}
     </div>
 
-    <div class="game-board">
+    <div class="game-board" :class="{ 'with-eval-bar': analysisMode }">
       <!-- Evaluation Bar (left of board) -->
       <EvaluationBar
         v-if="analysisMode"
@@ -311,6 +327,48 @@ export default {
       return this.game?.whitePlayerUsername || 'White'
     },
 
+    // Game over detection
+    isGameOver() {
+      // GameResult: 0=WaitJoin, 1=InProgress, 2=WhiteWins, 3=BlackWins, 4=Draw
+      return this.gameResult >= 2 || this.chess.isGameOver()
+    },
+
+    gameOverMessage() {
+      if (this.chess.isCheckmate()) {
+        return this.chess.turn() === 'w' ? 'Black wins by checkmate!' : 'White wins by checkmate!'
+      }
+      if (this.chess.isStalemate()) {
+        return 'Draw by stalemate'
+      }
+      if (this.chess.isThreefoldRepetition()) {
+        return 'Draw by threefold repetition'
+      }
+      if (this.chess.isInsufficientMaterial()) {
+        return 'Draw by insufficient material'
+      }
+      if (this.chess.isDraw()) {
+        return 'Draw'
+      }
+
+      // From backend game result
+      switch (this.gameResult) {
+        case 2: return 'White wins!'
+        case 3: return 'Black wins!'
+        case 4: return 'Draw!'
+        default: return 'Game Over'
+      }
+    },
+
+    gameOverIcon() {
+      if (this.chess.isCheckmate()) {
+        return this.chess.turn() === 'w' ? '♚' : '♔'
+      }
+      if (this.gameResult === 2) return '♔'
+      if (this.gameResult === 3) return '♚'
+      if (this.gameResult === 4 || this.chess.isDraw()) return '½'
+      return '🏁'
+    },
+
     // Navigation computed properties
     canGoBack() {
       return this.currentMoveIndex > 0
@@ -480,6 +538,16 @@ export default {
 
     handleGameStateChanged(data) {
       console.log('Game state changed:', data)
+
+      // Update game result when game ends
+      if (data.gameResult !== undefined && this.game) {
+        this.game.gameResult = data.gameResult
+
+        // Stop timer when game ends
+        if (data.gameResult >= 2) {
+          this.stopTimer()
+        }
+      }
     },
 
     handlePlayerJoined(data) {
@@ -814,11 +882,59 @@ export default {
   text-shadow: 0 0 10px rgba(122, 76, 224, 0.4);
 }
 
+/* Game Over Banner */
+.game-over-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(122, 76, 224, 0.2) 0%,
+    rgba(138, 90, 173, 0.15) 100%
+  );
+  border: 1px solid rgba(122, 76, 224, 0.4);
+  border-radius: var(--card-radius, 12px);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(122, 76, 224, 0.3);
+}
+
+.game-over-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.game-over-icon {
+  font-size: 2rem;
+}
+
+.game-over-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--cosmic-figures, #F2F2F2);
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+}
+
+.btn-primary {
+  background: var(--cosmic-action-primary, #7A4CE0);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: #6a3cd0;
+}
+
 .game-board {
   display: grid;
-  grid-template-columns: auto 1fr 300px;
+  grid-template-columns: 1fr 300px;
   gap: 1rem;
   align-items: start;
+}
+
+.game-board.with-eval-bar {
+  grid-template-columns: 40px 1fr 300px;
 }
 
 .eval-bar {
@@ -834,7 +950,8 @@ export default {
 }
 
 @media (max-width: 1200px) {
-  .game-board {
+  .game-board,
+  .game-board.with-eval-bar {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
