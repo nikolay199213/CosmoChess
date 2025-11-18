@@ -89,7 +89,15 @@ namespace CosmoChess.Api.Controllers
             return Ok(new { bestMove = result });
         }
 
+        [HttpPost("analyze-multipv")]
+        public async Task<IActionResult> AnalyzeMultiPv([FromBody] AnalyzeMultiPvDto dto, CancellationToken cancellationToken)
+        {
+            var result = await mediator.Send(new AnalyzeMultiPvCommand(dto.Fen, dto.Depth, dto.MultiPv), cancellationToken);
+            return Ok(result);
+        }
+
     }
     public record AnalyzePositionDto(string Fen, int Depth);
+    public record AnalyzeMultiPvDto(string Fen, int Depth, int MultiPv = 3);
 
 }

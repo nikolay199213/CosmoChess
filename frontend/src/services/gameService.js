@@ -114,6 +114,28 @@ class GameService {
     }
   }
 
+  async analyzeMultiPv(fen, depth = 15, multiPv = 3) {
+    try {
+      const response = await axios.post('/games/analyze-multipv', {
+        Fen: fen,
+        Depth: depth,
+        MultiPv: multiPv
+      })
+
+      return {
+        success: true,
+        lines: response.data.lines,
+        depth: response.data.depth
+      }
+    } catch (error) {
+      console.error('Error analyzing position:', error)
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to analyze position'
+      }
+    }
+  }
+
   async getGameById(gameId) {
     try {
       const response = await axios.get(`/games/${gameId}`)
