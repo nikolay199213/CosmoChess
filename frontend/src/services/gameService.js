@@ -73,7 +73,7 @@ class GameService {
     }
   }
 
-  async makeMove(gameId, move, newFen) {
+  async makeMove(gameId, move, newFen, gameEndInfo = {}) {
     try {
       const userId = authService.getUserId()
       if (!userId) {
@@ -84,15 +84,18 @@ class GameService {
         GameId: gameId,
         UserId: userId,
         Move: move,
-        NewFen: newFen
+        NewFen: newFen,
+        IsCheckmate: gameEndInfo.isCheckmate || false,
+        IsStalemate: gameEndInfo.isStalemate || false,
+        IsDraw: gameEndInfo.isDraw || false
       })
-      
+
       return { success: true }
     } catch (error) {
       console.error('Error making move:', error)
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Failed to make move' 
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to make move'
       }
     }
   }
@@ -105,6 +108,28 @@ class GameService {
       })
 
       return { success: true, bestMove: response.data.bestMove }
+    } catch (error) {
+      console.error('Error analyzing position:', error)
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to analyze position'
+      }
+    }
+  }
+
+  async analyzeMultiPv(fen, depth = 15, multiPv = 3) {
+    try {
+      const response = await axios.post('/games/analyze-multipv', {
+        Fen: fen,
+        Depth: depth,
+        MultiPv: multiPv
+      })
+
+      return {
+        success: true,
+        lines: response.data.lines,
+        depth: response.data.depth
+      }
     } catch (error) {
       console.error('Error analyzing position:', error)
       return {

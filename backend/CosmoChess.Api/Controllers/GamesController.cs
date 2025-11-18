@@ -58,26 +58,49 @@ namespace CosmoChess.Api.Controllers
         }
 
         [HttpPost("move")]
-        public async Task<IActionResult> Move([FromBody] MakeMoveCommand command)
+        public async Task<IActionResult> Move([FromBody] MakeMoveDto dto)
         {
+            var command = new MakeMoveCommand(
+                dto.GameId,
+                dto.UserId,
+                dto.Move,
+                dto.NewFen,
+                dto.IsCheckmate,
+                dto.IsStalemate,
+                dto.IsDraw
+            );
+
             await mediator.Send(command);
 
             // Get updated game state with timers
-            var game = await mediator.Send(new GetGameByIdQuery(command.GameId));
+            var game = await mediator.Send(new GetGameByIdQuery(dto.GameId));
 
             // Notify all players in the game room about the move
-            var gameGroupName = $"game_{command.GameId}";
+            var gameGroupName = $"game_{dto.GameId}";
             await hubContext.Clients.Group(gameGroupName).SendAsync(
                 "MoveReceived",
                 new
                 {
-                    gameId = command.GameId,
-                    userId = command.UserId,
-                    move = command.Move,
-                    newFen = command.NewFen,
+                    gameId = dto.GameId,
+                    userId = dto.UserId,
+                    move = dto.Move,
+                    newFen = dto.NewFen,
                     whiteTimeRemainingSeconds = game?.WhiteTimeRemainingSeconds ?? 0,
                     blackTimeRemainingSeconds = game?.BlackTimeRemainingSeconds ?? 0
                 });
+
+            // Notify about game state change if game ended
+            if (game != null && (int)game.GameResult >= 2)
+            {
+                await hubContext.Clients.Group(gameGroupName).SendAsync(
+                    "GameStateChanged",
+                    new
+                    {
+                        gameId = dto.GameId,
+                        gameResult = (int)game.GameResult,
+                        endReason = (int)game.EndReason
+                    });
+            }
 
             return Ok();
         }
@@ -89,7 +112,26 @@ namespace CosmoChess.Api.Controllers
             return Ok(new { bestMove = result });
         }
 
+        [HttpPost("analyze-multipv")]
+        public async Task<IActionResult> AnalyzeMultiPv([FromBody] AnalyzeMultiPvDto dto, CancellationToken cancellationToken)
+        {
+            var result = await mediator.Send(new AnalyzeMultiPvCommand(dto.Fen, dto.Depth, dto.MultiPv), cancellationToken);
+            return Ok(result);
+        }
+
     }
+
+    public record MakeMoveDto(
+        Guid GameId,
+        Guid UserId,
+        string Move,
+        string NewFen,
+        bool IsCheckmate = false,
+        bool IsStalemate = false,
+        bool IsDraw = false
+    );
+
     public record AnalyzePositionDto(string Fen, int Depth);
+    public record AnalyzeMultiPvDto(string Fen, int Depth, int MultiPv = 3);
 
 }

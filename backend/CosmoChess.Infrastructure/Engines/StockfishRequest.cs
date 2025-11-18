@@ -1,13 +1,47 @@
-﻿namespace CosmoChess.Infrastructure.Engines;
+using CosmoChess.Domain.ValueObject;
 
-public class StockfishRequest(
-    string fen,
-    int depth,
-    TaskCompletionSource<string> completionSource,
-    CancellationToken cancellationToken)
+namespace CosmoChess.Infrastructure.Engines;
+
+public abstract class StockfishRequestBase
 {
-    public string Fen { get; set; } = fen;
-    public int Depth { get; set; } = depth;
-    public TaskCompletionSource<string> CompletionSource { get; set; } = completionSource;
-    public CancellationToken CancellationToken { get; set; } = cancellationToken;
+    public string Fen { get; set; }
+    public int Depth { get; set; }
+    public CancellationToken CancellationToken { get; set; }
+}
+
+public class StockfishRequest : StockfishRequestBase
+{
+    public TaskCompletionSource<string> CompletionSource { get; set; }
+
+    public StockfishRequest(
+        string fen,
+        int depth,
+        TaskCompletionSource<string> completionSource,
+        CancellationToken cancellationToken)
+    {
+        Fen = fen;
+        Depth = depth;
+        CompletionSource = completionSource;
+        CancellationToken = cancellationToken;
+    }
+}
+
+public class StockfishMultiPvRequest : StockfishRequestBase
+{
+    public int MultiPv { get; set; }
+    public TaskCompletionSource<AnalysisResult> CompletionSource { get; set; }
+
+    public StockfishMultiPvRequest(
+        string fen,
+        int depth,
+        int multiPv,
+        TaskCompletionSource<AnalysisResult> completionSource,
+        CancellationToken cancellationToken)
+    {
+        Fen = fen;
+        Depth = depth;
+        MultiPv = multiPv;
+        CompletionSource = completionSource;
+        CancellationToken = cancellationToken;
+    }
 }
