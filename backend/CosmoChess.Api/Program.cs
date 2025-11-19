@@ -8,6 +8,8 @@ using CosmoChess.Infrastructure.Auth;
 using CosmoChess.Infrastructure.Engines;
 using CosmoChess.Infrastructure.Persistence;
 using CosmoChess.Infrastructure.Repositories;
+using CosmoChess.Infrastructure.Services;
+using CosmoChess.Domain.Interface.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -39,6 +41,12 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<StockfishEngine>();
 builder.Services.AddSingleton<IEngineService>(sp => sp.GetRequiredService<StockfishEngine>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<StockfishEngine>());
+
+// Bot services
+builder.Services.AddSingleton<IBotService, BotService>();
+builder.Services.AddSingleton<BotMoveBackgroundService>();
+builder.Services.AddSingleton<IBotMoveService>(sp => sp.GetRequiredService<BotMoveBackgroundService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMoveBackgroundService>());
 
 builder.Services.AddSwaggerGen(c =>
 {
