@@ -335,7 +335,9 @@ export default {
       if (this.game.gameResult !== 1) return false
 
       // Don't allow moves if second player hasn't joined yet
-      if (!this.game.blackPlayerId) return false
+      // Check for empty GUID or falsy value
+      const emptyGuid = '00000000-0000-0000-0000-000000000000'
+      if (!this.game.blackPlayerId || this.game.blackPlayerId === emptyGuid) return false
 
       const isWhite = this.game.whitePlayerId === userId
 
