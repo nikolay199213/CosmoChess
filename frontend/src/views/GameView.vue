@@ -449,6 +449,23 @@ export default {
           })
         }
       }
+    },
+    // Update board when game data changes (e.g., after loading or when player joins)
+    'game.gameResult'() {
+      if (this.boardAPI && this.boardAPI.board && this.boardAPI.board.set) {
+        const config = this.boardConfig
+        this.boardAPI.board.set({
+          movable: config.movable
+        })
+      }
+    },
+    'game.blackPlayerId'() {
+      if (this.boardAPI && this.boardAPI.board && this.boardAPI.board.set) {
+        const config = this.boardConfig
+        this.boardAPI.board.set({
+          movable: config.movable
+        })
+      }
     }
   },
 
