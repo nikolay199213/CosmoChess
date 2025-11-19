@@ -41,7 +41,7 @@ namespace CosmoChess.Application.Handlers
                     GameId = m.GameId,
                     UserId = m.UserId,
                     Move = m.Move,
-                    ResultFen = m.ResultFen,
+                    ResultFen = m.FenAfterMove,
                     MadeAt = m.MadeAt
                 }).ToList(),
                 GameType = game.GameType,
