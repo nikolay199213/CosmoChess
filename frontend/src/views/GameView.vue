@@ -320,6 +320,15 @@ export default {
 
     isPlayerTurn() {
       const userId = authService.getUserId()
+
+      console.log('isPlayerTurn check:', {
+        hasGame: !!this.game,
+        userId,
+        gameResult: this.game?.gameResult,
+        creatorId: this.game?.creatorId,
+        currentTurn: this.chess.turn()
+      })
+
       if (!this.game || !userId) return false
 
       // Don't allow moves if game is not in progress
