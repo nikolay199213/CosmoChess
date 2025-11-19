@@ -24,6 +24,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - DB_CONNECTION_STRING=Host=postgres;Database=cosmochess;Username=postgres;Password=password123
       - JWT_KEY=b62fe252fe0b37a0efa8b9f6ec065b28
+      - STOCKFISH_PATH=/usr/games/stockfish
     expose:
       - "5000"
     depends_on:
