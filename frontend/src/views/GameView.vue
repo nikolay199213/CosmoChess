@@ -321,12 +321,16 @@ export default {
     isPlayerTurn() {
       const userId = authService.getUserId()
 
+      // Extract current turn from FEN (reactive) instead of chess.turn() (non-reactive)
+      const fenParts = this.currentFen.split(' ')
+      const currentTurn = fenParts[1] || 'w'
+
       console.log('isPlayerTurn check:', {
         hasGame: !!this.game,
         userId,
         gameResult: this.game?.gameResult,
         whitePlayerId: this.game?.whitePlayerId,
-        currentTurn: this.chess.turn()
+        currentTurn
       })
 
       if (!this.game || !userId) return false
@@ -336,7 +340,6 @@ export default {
       if (this.game.gameResult !== 1) return false
 
       const isWhite = this.game.whitePlayerId === userId
-      const currentTurn = this.chess.turn()
 
       return (isWhite && currentTurn === 'w') || (!isWhite && currentTurn === 'b')
     },
