@@ -315,7 +315,11 @@ export default {
 
     isPlayerTurn() {
       const userId = authService.getUserId()
-      if (!this.game || !userId) return true
+      if (!this.game || !userId) return false
+
+      // Don't allow moves if game is not in progress
+      // gameResult: 0=WaitJoin, 1=InProgress, 2+=GameOver
+      if (this.game.gameResult !== 1) return false
 
       const isWhite = this.game.creatorId === userId
       const currentTurn = this.chess.turn()
