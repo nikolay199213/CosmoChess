@@ -267,12 +267,17 @@ export default {
       }
       // If not player's turn, dests stays empty - no moves allowed
 
-      // Determine which color can move
-      let movableColor = undefined
+      // Determine player's color based on whether they're the creator
+      const userId = authService.getUserId()
+      const isWhite = this.game?.creatorId === userId
+
+      // Set movable color to player's color (they can only interact with their pieces)
+      // In analysis mode, allow both colors
+      let movableColor
       if (this.analysisMode) {
         movableColor = 'both'
-      } else if (this.isPlayerTurn) {
-        movableColor = this.chess.turn() === 'w' ? 'white' : 'black'
+      } else {
+        movableColor = isWhite ? 'white' : 'black'
       }
 
       return {
