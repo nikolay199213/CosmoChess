@@ -269,7 +269,7 @@ export default {
 
       // Determine player's color based on whether they're the creator
       const userId = authService.getUserId()
-      const isWhite = this.game?.creatorId === userId
+      const isWhite = this.game?.whitePlayerId === userId
 
       // Set movable color to player's color (they can only interact with their pieces)
       // In analysis mode, allow both colors
@@ -325,7 +325,7 @@ export default {
         hasGame: !!this.game,
         userId,
         gameResult: this.game?.gameResult,
-        creatorId: this.game?.creatorId,
+        whitePlayerId: this.game?.whitePlayerId,
         currentTurn: this.chess.turn()
       })
 
@@ -335,7 +335,7 @@ export default {
       // gameResult: 0=WaitJoin, 1=InProgress, 2+=GameOver
       if (this.game.gameResult !== 1) return false
 
-      const isWhite = this.game.creatorId === userId
+      const isWhite = this.game.whitePlayerId === userId
       const currentTurn = this.chess.turn()
 
       return (isWhite && currentTurn === 'w') || (!isWhite && currentTurn === 'b')
