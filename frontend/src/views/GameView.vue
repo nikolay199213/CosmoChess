@@ -246,9 +246,12 @@ export default {
     boardConfig() {
       const dests = new Map()
 
+      // Create temp chess from currentFen for reactivity (this.chess is markRaw/non-reactive)
+      const tempChess = new Chess(this.currentFen)
+
       // In analysis mode, always allow moves for exploration
       if (this.analysisMode) {
-        const moves = this.chess.moves({ verbose: true })
+        const moves = tempChess.moves({ verbose: true })
         moves.forEach(move => {
           if (!dests.has(move.from)) {
             dests.set(move.from, [])
@@ -257,7 +260,7 @@ export default {
         })
       } else if (this.isPlayerTurn) {
         // Only allow moves if it's the current player's turn
-        const moves = this.chess.moves({ verbose: true })
+        const moves = tempChess.moves({ verbose: true })
         moves.forEach(move => {
           if (!dests.has(move.from)) {
             dests.set(move.from, [])
