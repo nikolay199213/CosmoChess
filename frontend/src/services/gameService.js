@@ -151,6 +151,21 @@ class GameService {
       }
     }
   }
+
+  async getUserGames(userId, skip = 0, take = 20) {
+    try {
+      const response = await axios.get(`/games/user/${userId}`, {
+        params: { skip, take }
+      })
+      return { success: true, games: response.data }
+    } catch (error) {
+      console.error('Error fetching user games:', error)
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch user games'
+      }
+    }
+  }
 }
 
 export const gameService = new GameService()
