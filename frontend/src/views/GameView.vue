@@ -334,6 +334,9 @@ export default {
       // gameResult: 0=WaitJoin, 1=InProgress, 2+=GameOver
       if (this.game.gameResult !== 1) return false
 
+      // Don't allow moves if second player hasn't joined yet
+      if (!this.game.blackPlayerId) return false
+
       const isWhite = this.game.whitePlayerId === userId
 
       return (isWhite && currentTurn === 'w') || (!isWhite && currentTurn === 'b')
