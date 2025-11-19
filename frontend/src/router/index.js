@@ -3,13 +3,18 @@ import { authService } from '../services/authService'
 import LoginView from '../views/LoginView.vue'
 import GamesView from '../views/GamesView.vue'
 import GameView from '../views/GameView.vue'
+import HomeView from '../views/HomeView.vue'
 
 const routes = [
   {
     path: '/',
-    redirect: () => {
-      return authService.isAuthenticated() ? '/games' : '/login'
-    }
+    redirect: '/home'
+  },
+  {
+    path: '/home',
+    name: 'Home',
+    component: HomeView,
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',

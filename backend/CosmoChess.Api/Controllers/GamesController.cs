@@ -22,6 +22,13 @@ namespace CosmoChess.Api.Controllers
             return games;
         }
 
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetUserGames(Guid userId, [FromQuery] int skip = 0, [FromQuery] int take = 20)
+        {
+            var games = await mediator.Send(new GetUserGamesQuery(userId, skip, take));
+            return Ok(games);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {

@@ -2,8 +2,11 @@
   <div id="app">
     <nav class="navbar">
       <div class="nav-container">
-        <h1 class="nav-title">CosmoChess</h1>
+        <router-link to="/home" class="nav-title-link">
+          <h1 class="nav-title">CosmoChess</h1>
+        </router-link>
         <div class="nav-links" v-if="isLoggedIn">
+          <router-link to="/home" class="nav-link">Home</router-link>
           <router-link to="/games" class="nav-link">Games</router-link>
           <button @click="logout" class="logout-btn">Logout</button>
         </div>
@@ -120,6 +123,10 @@ body::after {
   align-items: center;
 }
 
+.nav-title-link {
+  text-decoration: none;
+}
+
 .nav-title {
   font-family: var(--font-heading);
   font-size: 1.3rem;
@@ -127,6 +134,11 @@ body::after {
   color: var(--cosmic-figures);
   letter-spacing: 0.5px;
   text-shadow: 0 0 20px rgba(122, 76, 224, 0.4);
+  transition: all var(--transition-smooth);
+}
+
+.nav-title-link:hover .nav-title {
+  text-shadow: 0 0 30px rgba(122, 76, 224, 0.6);
 }
 
 .nav-links {
