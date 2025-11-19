@@ -43,6 +43,16 @@
       />
 
       <div class="board-section">
+        <!-- Horizontal evaluation bar for mobile -->
+        <EvaluationBar
+          v-if="analysisMode"
+          :score="currentEvaluation.score"
+          :isMate="currentEvaluation.isMate"
+          :mateIn="currentEvaluation.mateIn"
+          :horizontal="true"
+          class="eval-bar-mobile"
+        />
+
         <GameTimer
           v-if="hasTimeControl && !analysisMode"
           :timeSeconds="blackTimeRemaining"
@@ -949,6 +959,10 @@ export default {
   justify-self: center;
 }
 
+.eval-bar-mobile {
+  display: none;
+}
+
 .board-section {
   display: flex;
   flex-direction: column;
@@ -970,6 +984,10 @@ export default {
 
   .eval-bar {
     display: none;
+  }
+
+  .eval-bar-mobile {
+    display: flex;
   }
 }
 
