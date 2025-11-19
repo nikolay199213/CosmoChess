@@ -246,23 +246,41 @@ export default {
     boardConfig() {
       const dests = new Map()
 
+      // Create temp chess from currentFen for reactivity (this.chess is markRaw/non-reactive)
+      const tempChess = new Chess(this.currentFen)
+
       // In analysis mode, always allow moves for exploration
       if (this.analysisMode) {
-        const moves = this.chess.moves({ verbose: true })
+        const moves = tempChess.moves({ verbose: true })
         moves.forEach(move => {
           if (!dests.has(move.from)) {
             dests.set(move.from, [])
           }
           dests.get(move.from).push(move.to)
         })
+      } else if (this.isPlayerTurn) {
+        // Only allow moves if it's the current player's turn
+        const moves = tempChess.moves({ verbose: true })
+        moves.forEach(move => {
+          if (!dests.has(move.from)) {
+            dests.set(move.from, [])
+          }
+          dests.get(move.from).push(move.to)
+        })
+      }
+      // If not player's turn, dests stays empty - no moves allowed
+
+      // Determine player's color based on whether they're the creator
+      const userId = authService.getUserId()
+      const isWhite = this.game?.whitePlayerId === userId
+
+      // Set movable color to player's color (they can only interact with their pieces)
+      // In analysis mode, allow both colors
+      let movableColor
+      if (this.analysisMode) {
+        movableColor = 'both'
       } else {
-        const moves = this.chess.moves({ verbose: true })
-        moves.forEach(move => {
-          if (!dests.has(move.from)) {
-            dests.set(move.from, [])
-          }
-          dests.get(move.from).push(move.to)
-        })
+        movableColor = isWhite ? 'white' : 'black'
       }
 
       return {
@@ -271,7 +289,7 @@ export default {
         coordinates: true,
         movable: {
           free: false,
-          color: this.analysisMode ? 'both' : (this.chess.turn() === 'w' ? 'white' : 'black'),
+          color: movableColor,
           dests: dests
         },
         animation: {
@@ -282,21 +300,27 @@ export default {
     },
 
     gameStatus() {
+      // Extract current turn from FEN for reactivity
+      const fenParts = this.currentFen.split(' ')
+      const currentTurn = fenParts[1] || 'w'
+      const currentColor = currentTurn === 'w' ? 'White' : 'Black'
+      const oppositeColor = currentTurn === 'w' ? 'Black' : 'White'
+
       if (this.chess.isGameOver()) {
         if (this.chess.isCheckmate()) {
-          return `Checkmate! ${this.chess.turn() === 'w' ? 'Black' : 'White'} wins!`
+          return `Checkmate! ${oppositeColor} wins!`
         } else if (this.chess.isDraw()) {
           return 'Draw!'
         }
       } else if (this.chess.inCheck()) {
-        return `${this.chess.turn() === 'w' ? 'White' : 'Black'} is in check`
+        return `${currentColor} is in check`
       }
 
       if (this.analysisMode) {
         return `Analysis Mode - Move ${this.currentMoveIndex}/${this.moveHistory.length}`
       }
 
-      return `${this.chess.turn() === 'w' ? 'White' : 'Black'} to move`
+      return `${currentColor} to move`
     },
 
     currentPlayer() {
@@ -305,10 +329,23 @@ export default {
 
     isPlayerTurn() {
       const userId = authService.getUserId()
-      if (!this.game || !userId) return true
 
-      const isWhite = this.game.creatorId === userId
-      const currentTurn = this.chess.turn()
+      // Extract current turn from FEN (reactive) instead of chess.turn() (non-reactive)
+      const fenParts = this.currentFen.split(' ')
+      const currentTurn = fenParts[1] || 'w'
+
+      if (!this.game || !userId) return false
+
+      // Don't allow moves if game is not in progress
+      // gameResult: 0=WaitJoin, 1=InProgress, 2+=GameOver
+      if (this.game.gameResult !== 1) return false
+
+      // Don't allow moves if second player hasn't joined yet
+      // Check for empty GUID or falsy value
+      const emptyGuid = '00000000-0000-0000-0000-000000000000'
+      if (!this.game.blackPlayerId || this.game.blackPlayerId === emptyGuid) return false
+
+      const isWhite = this.game.whitePlayerId === userId
 
       return (isWhite && currentTurn === 'w') || (!isWhite && currentTurn === 'b')
     },
@@ -408,6 +445,32 @@ export default {
     currentFen(newFen) {
       if (this.boardAPI) {
         this.boardAPI.setPosition(newFen)
+
+        // Also update movable configuration to reflect new turn
+        // Use underlying chessground API
+        const config = this.boardConfig
+        if (this.boardAPI.board && this.boardAPI.board.set) {
+          this.boardAPI.board.set({
+            movable: config.movable
+          })
+        }
+      }
+    },
+    // Update board when game data changes (e.g., after loading or when player joins)
+    'game.gameResult'() {
+      if (this.boardAPI && this.boardAPI.board && this.boardAPI.board.set) {
+        const config = this.boardConfig
+        this.boardAPI.board.set({
+          movable: config.movable
+        })
+      }
+    },
+    'game.blackPlayerId'() {
+      if (this.boardAPI && this.boardAPI.board && this.boardAPI.board.set) {
+        const config = this.boardConfig
+        this.boardAPI.board.set({
+          movable: config.movable
+        })
       }
     }
   },
@@ -576,6 +639,12 @@ export default {
 
     onMove(move) {
       this.error = ''
+
+      // Don't allow moves if it's not the player's turn (safety check)
+      if (!this.analysisMode && !this.isPlayerTurn) {
+        this.error = 'It\'s not your turn'
+        return
+      }
 
       try {
         const chessMove = this.chess.move({
