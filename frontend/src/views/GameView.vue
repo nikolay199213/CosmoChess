@@ -300,21 +300,27 @@ export default {
     },
 
     gameStatus() {
+      // Extract current turn from FEN for reactivity
+      const fenParts = this.currentFen.split(' ')
+      const currentTurn = fenParts[1] || 'w'
+      const currentColor = currentTurn === 'w' ? 'White' : 'Black'
+      const oppositeColor = currentTurn === 'w' ? 'Black' : 'White'
+
       if (this.chess.isGameOver()) {
         if (this.chess.isCheckmate()) {
-          return `Checkmate! ${this.chess.turn() === 'w' ? 'Black' : 'White'} wins!`
+          return `Checkmate! ${oppositeColor} wins!`
         } else if (this.chess.isDraw()) {
           return 'Draw!'
         }
       } else if (this.chess.inCheck()) {
-        return `${this.chess.turn() === 'w' ? 'White' : 'Black'} is in check`
+        return `${currentColor} is in check`
       }
 
       if (this.analysisMode) {
         return `Analysis Mode - Move ${this.currentMoveIndex}/${this.moveHistory.length}`
       }
 
-      return `${this.chess.turn() === 'w' ? 'White' : 'Black'} to move`
+      return `${currentColor} to move`
     },
 
     currentPlayer() {
