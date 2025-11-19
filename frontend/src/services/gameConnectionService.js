@@ -1,5 +1,6 @@
 import * as signalR from '@microsoft/signalr'
 import { authService } from './authService'
+import config from '../config'
 
 class GameConnectionService {
   constructor() {
@@ -21,7 +22,7 @@ class GameConnectionService {
       const token = authService.getToken()
 
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl('/api/gamehub', {
+        .withUrl(config.SIGNALR_URL, {
           accessTokenFactory: () => token
         })
         .withAutomaticReconnect({

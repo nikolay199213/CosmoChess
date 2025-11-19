@@ -6,9 +6,16 @@
     "build": "vite build",
     "dev": "vite --host 0.0.0.0 --port 8080",
     "preview": "vite preview --host 0.0.0.0 --port 8080",
-    "serve": "vite --host 0.0.0.0 --port 8080"
+    "serve": "vite --host 0.0.0.0 --port 8080",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build": "npm run build && npx cap sync android",
+    "android:run": "npx cap run android"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
     "@microsoft/signalr": "^9.0.6",
     "axios": "^1.6.0",
     "chess.js": "^1.0.0-beta.6",

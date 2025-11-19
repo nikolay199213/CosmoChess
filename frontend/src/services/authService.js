@@ -1,16 +1,17 @@
 import axios from 'axios'
 import { ref } from 'vue'
+import config from '../config'
 
 class AuthService {
   constructor() {
     this.token = localStorage.getItem('authToken')
     this.userId = localStorage.getItem('userId')
-    
+
     // Make authentication state reactive
     this.isLoggedIn = ref(!!this.token)
-    
+
     // Set up axios interceptor to include token in all requests
-    axios.defaults.baseURL = '/api'
+    axios.defaults.baseURL = config.API_PREFIX
     axios.interceptors.request.use(
       (config) => {
         console.log('Axios request interceptor - token exists:', !!this.token)
