@@ -444,10 +444,13 @@ export default {
         this.boardAPI.setPosition(newFen)
 
         // Also update movable configuration to reflect new turn
+        // Use underlying chessground API
         const config = this.boardConfig
-        this.boardAPI.set({
-          movable: config.movable
-        })
+        if (this.boardAPI.board && this.boardAPI.board.set) {
+          this.boardAPI.board.set({
+            movable: config.movable
+          })
+        }
       }
     }
   },
