@@ -442,6 +442,12 @@ export default {
     currentFen(newFen) {
       if (this.boardAPI) {
         this.boardAPI.setPosition(newFen)
+
+        // Also update movable configuration to reflect new turn
+        const config = this.boardConfig
+        this.boardAPI.set({
+          movable: config.movable
+        })
       }
     }
   },
