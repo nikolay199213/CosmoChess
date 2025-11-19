@@ -1,8 +1,8 @@
 <template>
-  <div class="evaluation-bar">
+  <div class="evaluation-bar" :class="{ 'horizontal': horizontal }">
     <div class="bar-container">
-      <div class="bar-fill white-fill" :style="{ height: whitePercentage + '%' }"></div>
-      <div class="bar-fill black-fill" :style="{ height: blackPercentage + '%' }"></div>
+      <div class="bar-fill white-fill" :style="horizontal ? { width: whitePercentage + '%' } : { height: whitePercentage + '%' }"></div>
+      <div class="bar-fill black-fill" :style="horizontal ? { width: blackPercentage + '%' } : { height: blackPercentage + '%' }"></div>
     </div>
     <div class="score-display">
       <span v-if="isMate" class="mate-score">M{{ mateIn }}</span>
@@ -26,6 +26,10 @@ export default {
     mateIn: {
       type: Number,
       default: null
+    },
+    horizontal: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
@@ -110,5 +114,46 @@ export default {
 .mate-score {
   color: #ff6b6b;
   font-weight: 700;
+}
+
+/* Horizontal layout for mobile */
+.evaluation-bar.horizontal {
+  flex-direction: row;
+  width: 100%;
+  height: 30px;
+  min-height: auto;
+  gap: 8px;
+}
+
+.evaluation-bar.horizontal .bar-container {
+  flex: 1;
+  width: auto;
+  height: 20px;
+  flex-direction: row;
+}
+
+.evaluation-bar.horizontal .white-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+}
+
+.evaluation-bar.horizontal .black-fill {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  left: auto;
+}
+
+.evaluation-bar.horizontal .score-display {
+  margin-top: 0;
+  margin-left: 0;
+  white-space: nowrap;
 }
 </style>
