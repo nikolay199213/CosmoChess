@@ -328,14 +328,6 @@ export default {
       const fenParts = this.currentFen.split(' ')
       const currentTurn = fenParts[1] || 'w'
 
-      console.log('isPlayerTurn check:', {
-        hasGame: !!this.game,
-        userId,
-        gameResult: this.game?.gameResult,
-        whitePlayerId: this.game?.whitePlayerId,
-        currentTurn
-      })
-
       if (!this.game || !userId) return false
 
       // Don't allow moves if game is not in progress
@@ -620,11 +612,8 @@ export default {
     onMove(move) {
       this.error = ''
 
-      console.log('onMove called:', { move, analysisMode: this.analysisMode, isPlayerTurn: this.isPlayerTurn })
-
       // Don't allow moves if it's not the player's turn (safety check)
       if (!this.analysisMode && !this.isPlayerTurn) {
-        console.log('Move blocked - not player turn')
         this.error = 'It\'s not your turn'
         return
       }
@@ -676,14 +665,12 @@ export default {
         }
 
         // Send move to backend
-        console.log('Sending move to backend:', { gameId: this.gameId, move: chessMove.san, fen: this.chess.fen() })
         gameService.makeMove(
           this.gameId,
           chessMove.san,
           this.chess.fen(),
           gameEndInfo
         ).then(result => {
-          console.log('Backend response:', result)
           if (!result.success) {
             this.chess.undo()
             this.moveHistory.pop()
