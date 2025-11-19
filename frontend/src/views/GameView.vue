@@ -255,7 +255,8 @@ export default {
           }
           dests.get(move.from).push(move.to)
         })
-      } else {
+      } else if (this.isPlayerTurn) {
+        // Only allow moves if it's the current player's turn
         const moves = this.chess.moves({ verbose: true })
         moves.forEach(move => {
           if (!dests.has(move.from)) {
@@ -264,6 +265,15 @@ export default {
           dests.get(move.from).push(move.to)
         })
       }
+      // If not player's turn, dests stays empty - no moves allowed
+
+      // Determine which color can move
+      let movableColor = undefined
+      if (this.analysisMode) {
+        movableColor = 'both'
+      } else if (this.isPlayerTurn) {
+        movableColor = this.chess.turn() === 'w' ? 'white' : 'black'
+      }
 
       return {
         fen: this.currentFen,
@@ -271,7 +281,7 @@ export default {
         coordinates: true,
         movable: {
           free: false,
-          color: this.analysisMode ? 'both' : (this.chess.turn() === 'w' ? 'white' : 'black'),
+          color: movableColor,
           dests: dests
         },
         animation: {
@@ -576,6 +586,12 @@ export default {
 
     onMove(move) {
       this.error = ''
+
+      // Don't allow moves if it's not the player's turn (safety check)
+      if (!this.analysisMode && !this.isPlayerTurn) {
+        this.error = 'It\'s not your turn'
+        return
+      }
 
       try {
         const chessMove = this.chess.move({
