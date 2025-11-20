@@ -3,7 +3,7 @@ using CosmoChess.Domain.Entities;
 using CosmoChess.Domain.Enums;
 using CosmoChess.Domain.Interface.Repositories;
 using CosmoChess.Domain.Interface.Services;
-using Gera.Chess;
+using Chess;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -109,7 +109,7 @@ namespace CosmoChess.Infrastructure.Services
             {
                 // Promotion move
                 var promotionPiece = uciMove[4];
-                board.Move(new Move(from, to, promotionPiece));
+                board.Move(new Move(from, to));
             }
             else
             {
