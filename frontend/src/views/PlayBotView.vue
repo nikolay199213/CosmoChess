@@ -64,11 +64,11 @@ export default {
       creatingGame: false,
       error: '',
       difficulties: [
-        { value: 1, name: 'Beginner', rating: '400' },
-        { value: 2, name: 'Easy', rating: '800' },
-        { value: 3, name: 'Medium', rating: '1200' },
-        { value: 4, name: 'Hard', rating: '1600' },
-        { value: 5, name: 'Expert', rating: '2000' },
+        { value: 1, name: 'Beginner', rating: '400-600' },
+        { value: 2, name: 'Easy', rating: '800-1000' },
+        { value: 3, name: 'Medium', rating: '1200-1400' },
+        { value: 4, name: 'Hard', rating: '1600-1800' },
+        { value: 5, name: 'Expert', rating: '2000-2200' },
         { value: 6, name: 'Master', rating: '2400+' }
       ]
     }

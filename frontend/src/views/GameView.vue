@@ -367,10 +367,20 @@ export default {
     },
 
     blackPlayerLabel() {
+      // Check if black player is a bot (special GUID)
+      const botPlayerId = '00000000-0000-0000-0000-000000000001'
+      if (this.game?.blackPlayerId === botPlayerId) {
+        return 'Bot'
+      }
       return this.game?.blackPlayerUsername || 'Waiting...'
     },
 
     whitePlayerLabel() {
+      // Check if white player is a bot (special GUID)
+      const botPlayerId = '00000000-0000-0000-0000-000000000001'
+      if (this.game?.whitePlayerId === botPlayerId) {
+        return 'Bot'
+      }
       return this.game?.whitePlayerUsername || 'White'
     },
 
