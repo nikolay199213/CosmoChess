@@ -28,6 +28,14 @@
       </div>
 
       <div class="action-card">
+        <h2>Play vs Bot</h2>
+        <p>Practice against computer opponents of varying difficulty</p>
+        <button @click="goToPlayBot" class="btn btn-primary">
+          Play Bot
+        </button>
+      </div>
+
+      <div class="action-card">
         <h2>Available Games</h2>
         <p>Browse and join games waiting for players</p>
         <button @click="goToGames" class="btn btn-primary">
@@ -142,6 +150,10 @@ export default {
 
     goToGames() {
       this.$router.push('/games')
+    },
+
+    goToPlayBot() {
+      this.$router.push('/play/bot')
     },
 
     analyzeGame(gameId) {
