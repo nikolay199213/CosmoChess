@@ -98,56 +98,54 @@ namespace CosmoChess.Infrastructure.Services
             // Get best move from engine (UCI format like "e2e4")
             var uciMove = await _botService.GetBotMoveAsync(request.CurrentFen, request.Difficulty, cancellationToken);
 
-            // Parse UCI move
+            // Use Gera.Chess to apply move, check game state and get new FEN
+            var board = ChessBoard.LoadFromFen(request.CurrentFen);
+
+            // Parse UCI move (e2e4 -> "e2" to "e4", e7e8q -> "e7" to "e8" promote to 'q')
             var from = uciMove[..2];
             var to = uciMove[2..4];
-            var promotion = uciMove.Length > 4 ? uciMove[4].ToString() : null;
 
-            // Use Gera.Chess to apply move and get new FEN
-            var board = Board.FromFEN(request.CurrentFen);
-
-            var fromSquare = ParseSquare(from);
-            var toSquare = ParseSquare(to);
-
-            var move = new Move(fromSquare, toSquare);
-            if (promotion != null)
+            if (uciMove.Length > 4)
             {
-                var promoType = promotion.ToLower() switch
-                {
-                    "q" => PieceType.Queen,
-                    "r" => PieceType.Rook,
-                    "b" => PieceType.Bishop,
-                    "n" => PieceType.Knight,
-                    _ => PieceType.Queen
-                };
-                move = new Move(fromSquare, toSquare, promoType);
+                // Promotion move
+                var promotionPiece = uciMove[4];
+                board.Move(new Move(from, to, promotionPiece));
+            }
+            else
+            {
+                board.Move(new Move(from, to));
             }
 
-            board.MakeMove(move);
-            var newFen = board.ToFEN();
+            // Get new FEN using ToFen() method
+            var newFen = board.ToFen();
 
-            // Check game end conditions
-            var isCheckmate = board.IsCheckmate();
-            var isStalemate = board.IsStalemate();
-            var isDraw = board.IsDraw() && !isStalemate;
+            // Check game end conditions using EndGame property
+            var isCheckmate = board.IsEndGame && board.EndGame?.EndgameType == EndgameType.Checkmate;
+            var isStalemate = board.IsEndGame && board.EndGame?.EndgameType == EndgameType.Stalemate;
+            var isDraw = board.IsEndGame && (
+                board.EndGame?.EndgameType == EndgameType.InsufficientMaterial ||
+                board.EndGame?.EndgameType == EndgameType.FiftyMoveRule ||
+                board.EndGame?.EndgameType == EndgameType.Repetition ||
+                board.EndGame?.EndgameType == EndgameType.DrawDeclared
+            );
 
-            // Get SAN notation for the move
-            var sanMove = uciMove; // For now use UCI, can convert to SAN later
+            // Use UCI notation for move (client will convert if needed)
+            var move = uciMove;
 
             // Save move to database
             using var scope = _scopeFactory.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IGameRepository>();
 
             var game = await repository.GetById(request.GameId, cancellationToken);
-            game.MakeMove(Game.BotPlayerId, sanMove, newFen, isCheckmate, isStalemate, isDraw);
+            game.MakeMove(Game.BotPlayerId, move, newFen, isCheckmate, isStalemate, isDraw);
             await repository.Update(game, cancellationToken);
 
-            _logger.LogInformation("Bot made move {Move} in game {GameId}", sanMove, request.GameId);
+            _logger.LogInformation("Bot made move {Move} in game {GameId}", move, request.GameId);
 
             return new BotMoveResult
             {
                 GameId = request.GameId,
-                Move = sanMove,
+                Move = move,
                 NewFen = newFen,
                 IsCheckmate = isCheckmate,
                 IsStalemate = isStalemate,
@@ -157,13 +155,6 @@ namespace CosmoChess.Infrastructure.Services
                 GameResult = isCheckmate || isStalemate || isDraw ? game.GameResult : null,
                 EndReason = isCheckmate || isStalemate || isDraw ? game.EndReason : null
             };
-        }
-
-        private static Square ParseSquare(string notation)
-        {
-            var file = notation[0] - 'a';
-            var rank = notation[1] - '1';
-            return (Square)(rank * 8 + file);
         }
     }
 }
