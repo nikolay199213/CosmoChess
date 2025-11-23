@@ -37,11 +37,22 @@ namespace CosmoChess.Infrastructure.Services
                     return move;
                 }
 
+                // Filter out obvious blunders (losing material unnecessarily)
+                var filteredLines = FilterObviousBlunders(analysis.Lines, difficulty);
+
+                // Check if we can capture an undefended piece
+                var capturingMove = TryGetCapturingMove(filteredLines, difficulty);
+                if (capturingMove != null)
+                {
+                    _logger.LogInformation("Bot found capturing move: {Move}", capturingMove);
+                    return capturingMove;
+                }
+
                 // Choose move based on difficulty (add mistakes for weaker bots)
-                var selectedMove = SelectMoveByDifficulty(analysis.Lines, difficulty);
+                var selectedMove = SelectMoveByDifficulty(filteredLines, difficulty);
 
                 // Apply style preference
-                selectedMove = ApplyStylePreference(analysis.Lines, selectedMove, style, difficulty);
+                selectedMove = ApplyStylePreference(filteredLines, selectedMove, style, difficulty);
 
                 _logger.LogInformation("Bot calculated {LineCount} moves, selected: {Move} (style: {Style})",
                     analysis.Lines.Count, selectedMove, style);
@@ -162,6 +173,74 @@ namespace CosmoChess.Infrastructure.Services
                 BotDifficulty.Master => 20,
                 _ => 10
             };
+        }
+
+        private List<Domain.ValueObject.AnalysisLine> FilterObviousBlunders(IReadOnlyList<Domain.ValueObject.AnalysisLine> lines, BotDifficulty difficulty)
+        {
+            // No filtering for beginner - allow all mistakes
+            if (difficulty == BotDifficulty.Beginner)
+                return lines.ToList();
+
+            // Define blunder threshold based on difficulty (in centipawns)
+            // Negative values mean we're comparing how much worse a move is than the best move
+            var blunderThreshold = difficulty switch
+            {
+                BotDifficulty.Easy => -300,      // Lose a minor piece (3 pawns) or more
+                BotDifficulty.Medium => -200,    // Lose 2 pawns worth of material
+                BotDifficulty.Hard => -150,      // Lose 1.5 pawns worth
+                _ => -100                         // Expert/Master - very strict (1 pawn)
+            };
+
+            var bestScore = lines[0].Score;
+
+            // Filter out moves that are significantly worse than the best move
+            var filteredLines = lines
+                .Where(line => line.Score - bestScore >= blunderThreshold)
+                .ToList();
+
+            // If all moves are filtered out (rare), keep at least the best 3 moves
+            if (filteredLines.Count == 0)
+            {
+                _logger.LogWarning("All moves filtered as blunders, keeping top 3 moves");
+                return lines.Take(3).ToList();
+            }
+
+            _logger.LogInformation("Filtered {Original} moves to {Filtered} moves (removed blunders worse than {Threshold})",
+                lines.Count, filteredLines.Count, blunderThreshold);
+
+            return filteredLines;
+        }
+
+        private string? TryGetCapturingMove(IReadOnlyList<Domain.ValueObject.AnalysisLine> lines, BotDifficulty difficulty)
+        {
+            // Look for moves that win material
+            // A move that improves evaluation by 200+ centipawns likely captures a minor piece
+            // A move that improves by 500+ centipawns likely captures a rook
+            // A move that improves by 900+ centipawns likely captures a queen
+            var capturingMoves = lines
+                .Where(l => l.Score > 200) // Winning significant material
+                .ToList();
+
+            if (capturingMoves.Count == 0)
+                return null; // No obvious captures available
+
+            // Higher difficulty = more likely to capture hanging pieces
+            var captureChance = difficulty switch
+            {
+                BotDifficulty.Beginner => 50,  // Only 50% chance to capture
+                BotDifficulty.Easy => 70,      // 70% chance
+                BotDifficulty.Medium => 85,    // 85% chance
+                BotDifficulty.Hard => 95,      // 95% chance
+                _ => 98                         // Expert/Master - almost always capture
+            };
+
+            if (_random.Next(100) >= captureChance)
+                return null; // Bot "missed" the capture
+
+            // Pick one of the capturing moves (prefer the best ones)
+            var topCaptures = capturingMoves.Take(Math.Max(1, capturingMoves.Count / 2)).ToList();
+            var randomIndex = _random.Next(topCaptures.Count);
+            return topCaptures[randomIndex].Move;
         }
 
         private string ApplyStylePreference(IReadOnlyList<Domain.ValueObject.AnalysisLine> lines, string selectedMove, BotStyle style, BotDifficulty difficulty)
