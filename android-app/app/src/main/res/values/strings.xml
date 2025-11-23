@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CosmoChess</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="username">Username</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="dont_have_account">Don\'t have an account?</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="logout">Logout</string>
+
+    <!-- Games -->
+    <string name="new_game">New Game</string>
+    <string name="play_vs_bot">Play vs Bot</string>
+    <string name="play_online">Play Online</string>
+    <string name="join_game">Join Game</string>
+    <string name="waiting_games">Waiting Games</string>
+    <string name="no_games_available">No games available</string>
+    <string name="create_new_game">Create New Game</string>
+
+    <!-- Bot Game -->
+    <string name="select_difficulty">Select Difficulty</string>
+    <string name="select_style">Select Playing Style</string>
+    <string name="start_game">Start Game</string>
+
+    <!-- Chess Board -->
+    <string name="white_turn">White to move</string>
+    <string name="black_turn">Black to move</string>
+    <string name="checkmate">Checkmate!</string>
+    <string name="stalemate">Stalemate!</string>
+    <string name="draw">Draw!</string>
+    <string name="waiting_for_opponent">Waiting for opponent...</string>
+
+    <!-- Errors -->
+    <string name="error_login">Login failed. Please check your credentials.</string>
+    <string name="error_register">Registration failed. Please try again.</string>
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_create_game">Failed to create game.</string>
+    <string name="error_join_game">Failed to join game.</string>
+    <string name="error_make_move">Failed to make move.</string>
+</resources>

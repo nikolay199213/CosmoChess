@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.cosmochess.ui.auth.LoginFragment"
+        android:label="Login">
+        <action
+            android:id="@+id/action_login_to_register"
+            app:destination="@id/registerFragment" />
+        <action
+            android:id="@+id/action_login_to_menu"
+            app:destination="@id/menuFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="com.cosmochess.ui.auth.RegisterFragment"
+        android:label="Register">
+        <action
+            android:id="@+id/action_register_to_login"
+            app:destination="@id/loginFragment" />
+        <action
+            android:id="@+id/action_register_to_menu"
+            app:destination="@id/menuFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/menuFragment"
+        android:name="com.cosmochess.ui.menu.MenuFragment"
+        android:label="Menu">
+        <action
+            android:id="@+id/action_menu_to_bot_setup"
+            app:destination="@id/botGameSetupFragment" />
+        <action
+            android:id="@+id/action_menu_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/menuFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/botGameSetupFragment"
+        android:name="com.cosmochess.ui.game.BotGameSetupFragment"
+        android:label="Bot Game Setup">
+        <action
+            android:id="@+id/action_bot_setup_to_game"
+            app:destination="@id/gameFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/gameFragment"
+        android:name="com.cosmochess.ui.game.GameFragment"
+        android:label="Game">
+        <argument
+            android:name="gameId"
+            app:argType="string" />
+    </fragment>
+
+</navigation>
