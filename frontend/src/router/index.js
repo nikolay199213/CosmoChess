@@ -4,6 +4,7 @@ import LoginView from '../views/LoginView.vue'
 import GamesView from '../views/GamesView.vue'
 import GameView from '../views/GameView.vue'
 import HomeView from '../views/HomeView.vue'
+import PlayBotView from '../views/PlayBotView.vue'
 
 const routes = [
   {
@@ -33,6 +34,12 @@ const routes = [
     name: 'Game',
     component: GameView,
     props: true,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/play/bot',
+    name: 'PlayBot',
+    component: PlayBotView,
     meta: { requiresAuth: true }
   }
 ]

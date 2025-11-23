@@ -1,7 +1,9 @@
 using CosmoChess.Api.Hubs;
 using CosmoChess.Application.Commands;
 using CosmoChess.Domain.Entities;
+using CosmoChess.Domain.Enums;
 using CosmoChess.Domain.Interface.Repositories;
+using CosmoChess.Infrastructure.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +15,12 @@ namespace CosmoChess.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class GamesController(IMediator mediator, IHubContext<GameHub> hubContext, IUserRepository userRepository) : ControllerBase
+    public class GamesController(
+        IMediator mediator,
+        IHubContext<GameHub> hubContext,
+        IUserRepository userRepository,
+        IBotMoveService botMoveService,
+        IGameRepository gameRepository) : ControllerBase
     {
         [HttpGet("wait-join")]
         public async Task<List<Game>> GetGamesForJoin()
@@ -43,6 +50,14 @@ namespace CosmoChess.Api.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] CreateGameCommand command)
         {
+            var gameId = await mediator.Send(command);
+            return Ok(gameId);
+        }
+
+        [HttpPost("vs-bot")]
+        public async Task<IActionResult> CreateBotGame([FromBody] CreateBotGameDto dto)
+        {
+            var command = new CreateBotGameCommand(dto.CreatorId, dto.Difficulty, dto.Style, dto.TimeControl);
             var gameId = await mediator.Send(command);
             return Ok(gameId);
         }
@@ -115,6 +130,52 @@ namespace CosmoChess.Api.Controllers
                     });
             }
 
+            // If it's a bot game and game is still in progress, trigger bot move
+            if (game != null && game.GameType == GameType.HumanVsBot && (int)game.GameResult < 2)
+            {
+                var gameEntity = await gameRepository.GetById(dto.GameId, CancellationToken.None);
+                if (gameEntity.IsBotTurn() && gameEntity.BotDifficulty.HasValue)
+                {
+                    var botRequest = new BotMoveRequest
+                    {
+                        GameId = dto.GameId,
+                        CurrentFen = dto.NewFen,
+                        Difficulty = gameEntity.BotDifficulty.Value,
+                        Style = gameEntity.BotStyle ?? BotStyle.Balanced
+                    };
+
+                    // Process bot move asynchronously
+                    botMoveService.EnqueueBotMove(botRequest, async result =>
+                    {
+                        // Send bot move to clients
+                        await hubContext.Clients.Group(gameGroupName).SendAsync(
+                            "MoveReceived",
+                            new
+                            {
+                                gameId = result.GameId,
+                                userId = Game.BotPlayerId,
+                                move = result.Move,
+                                newFen = result.NewFen,
+                                whiteTimeRemainingSeconds = result.WhiteTimeRemainingSeconds,
+                                blackTimeRemainingSeconds = result.BlackTimeRemainingSeconds
+                            });
+
+                        // Notify about game state change if game ended
+                        if (result.GameResult.HasValue)
+                        {
+                            await hubContext.Clients.Group(gameGroupName).SendAsync(
+                                "GameStateChanged",
+                                new
+                                {
+                                    gameId = result.GameId,
+                                    gameResult = (int)result.GameResult.Value,
+                                    endReason = (int)(result.EndReason ?? GameEndReason.None)
+                                });
+                        }
+                    });
+                }
+            }
+
             return Ok();
         }
 
@@ -142,6 +203,13 @@ namespace CosmoChess.Api.Controllers
         bool IsCheckmate = false,
         bool IsStalemate = false,
         bool IsDraw = false
+    );
+
+    public record CreateBotGameDto(
+        Guid CreatorId,
+        BotDifficulty Difficulty,
+        BotStyle Style = BotStyle.Balanced,
+        TimeControl TimeControl = TimeControl.None
     );
 
     public record AnalyzePositionDto(string Fen, int Depth);

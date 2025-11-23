@@ -6,6 +6,8 @@ namespace CosmoChess.Domain.Entities
     public class Game
     {
         public const string InitialFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        public static readonly Guid BotPlayerId = new("00000000-0000-0000-0000-000000000001");
+
         public Guid Id { get; init; } = Guid.NewGuid();
         public DateTime StartedAt { get; private set; } = DateTime.UtcNow;
 
@@ -15,6 +17,8 @@ namespace CosmoChess.Domain.Entities
         public GameResult GameResult { get; private set; } = GameResult.WaitJoin;
         public GameEndReason EndReason { get; private set; } = GameEndReason.None;
         public string CurrentFen { get; private set; } = InitialFen;
+        public BotDifficulty? BotDifficulty { get; private set; }
+        public BotStyle? BotStyle { get; private set; }
 
         // Timer fields
         public TimeControl TimeControl { get; private set; } = TimeControl.None;
@@ -22,15 +26,38 @@ namespace CosmoChess.Domain.Entities
         public int BlackTimeRemainingSeconds { get; private set; }
         public DateTime? LastMoveTime { get; private set; }
 
+        // Constructor for human vs human games
         public Game(Guid whitePlayerId, TimeControl timeControl = TimeControl.None)
         {
             WhitePlayerId = whitePlayerId;
+            GameType = GameType.HumanVsHuman;
             TimeControl = timeControl;
 
             var settings = new TimeControlSettings(timeControl);
             WhiteTimeRemainingSeconds = settings.InitialTimeSeconds;
             BlackTimeRemainingSeconds = settings.InitialTimeSeconds;
         }
+
+        // Constructor for human vs bot games
+        public Game(Guid whitePlayerId, BotDifficulty botDifficulty, BotStyle botStyle = Enums.BotStyle.Balanced, TimeControl timeControl = TimeControl.None)
+        {
+            WhitePlayerId = whitePlayerId;
+            BlackPlayerId = BotPlayerId;
+            GameType = GameType.HumanVsBot;
+            BotDifficulty = botDifficulty;
+            BotStyle = botStyle;
+            GameResult = GameResult.InProgress; // Bot games start immediately
+            TimeControl = timeControl;
+            LastMoveTime = DateTime.UtcNow;
+
+            var settings = new TimeControlSettings(timeControl);
+            WhiteTimeRemainingSeconds = settings.InitialTimeSeconds;
+            BlackTimeRemainingSeconds = settings.InitialTimeSeconds;
+        }
+
+        public bool IsBotGame() => GameType == GameType.HumanVsBot;
+
+        public bool IsBotTurn() => IsBotGame() && !CurrentFen.Contains(" w ");
 
         public void Join(Guid blackPlayerId)
         {

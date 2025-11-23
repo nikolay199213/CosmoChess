@@ -51,6 +51,35 @@ class GameService {
     }
   }
 
+  async createBotGame(difficulty, style = 0, timeControl = 0) {
+    try {
+      const userId = authService.getUserId()
+      console.log('Creating bot game with userId:', userId, 'difficulty:', difficulty, 'style:', style, 'timeControl:', timeControl)
+
+      if (!userId) {
+        console.error('User not authenticated - no userId found')
+        throw new Error('User not authenticated')
+      }
+
+      const response = await axios.post('/games/vs-bot', {
+        CreatorId: userId,
+        Difficulty: difficulty,
+        Style: style,
+        TimeControl: timeControl
+      })
+
+      console.log('Create bot game response:', response.data)
+      return { success: true, gameId: response.data }
+    } catch (error) {
+      console.error('Error creating bot game:', error)
+      console.error('Error response:', error.response)
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create bot game'
+      }
+    }
+  }
+
   async joinGame(gameId) {
     try {
       const userId = authService.getUserId()
