@@ -75,10 +75,10 @@ export default {
 
     advantageDisplay() {
       const advantage = this.materialAdvantage.advantage
-      // Display in centipawns or pawns
+      // Display in whole pawns (rounded)
       if (advantage >= 100) {
-        const pawns = (advantage / 100).toFixed(1)
-        return pawns
+        const pawns = Math.round(advantage / 100)
+        return pawns.toString()
       }
       return '0'
     },
