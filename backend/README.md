@@ -6,9 +6,14 @@ This is the backend for the CosmoChess application, built with .NET, ASP.NET Cor
 
 The backend follows the principles of **Clean Architecture** to create a decoupled, testable, and maintainable system. The solution is divided into four main projects:
 
--   `CosmoChess.Domain`: Contains the core business logic, entities (User, Game), and interfaces for repositories and services. This layer has no external dependencies.
--   `CosmoChess.Application`: Implements the application's use cases using a CQRS (Command Query Responsibility Segregation) pattern. It contains commands, queries, and their handlers. It depends only on the Domain layer.
--   `CosmoChess.Infrastructure`: Provides implementations for the interfaces defined in the Domain layer. This includes database access with Entity Framework Core, JWT generation, password hashing, and services like the Stockfish engine wrapper.
+-   `CosmoChess.Domain`: Contains the core business logic, entities (User, Game), enums (BotDifficulty, BotStyle), and interfaces for repositories and services. This layer has no external dependencies.
+-   `CosmoChess.Application`: Implements the application's use cases using a CQRS (Command Query Responsibility Segregation) pattern. It contains commands, queries, and their handlers for both multiplayer and bot games. It depends only on the Domain layer.
+-   `CosmoChess.Infrastructure`: Provides implementations for the interfaces defined in the Domain layer. This includes:
+    - Database access with Entity Framework Core
+    - JWT generation and password hashing
+    - **StockfishEngine**: Chess engine integration for position analysis and bot moves
+    - **BotService**: Intelligent bot move selection with difficulty and style logic
+    - **BotMoveBackgroundService**: Asynchronous bot move processing
 -   `CosmoChess.Api`: The entry point of the application. This ASP.NET Core project exposes the REST API endpoints and the SignalR hub. It depends on the Application and Infrastructure layers.
 
 ## Technology Stack
@@ -102,14 +107,72 @@ In production (`docker-compose.prod.yml`), the backend uses:
 - `POST /api/auth/login` - Login and receive JWT token
 
 ### Games
-- `GET /api/games/wait-join` - Get games waiting for players
-- `POST /api/games/create` - Create a new game
-- `POST /api/games/join` - Join an existing game
-- `POST /api/games/move` - Make a move in a game
-- `POST /api/games/analyze` - Analyze position with Stockfish engine
+- `GET /api/games/wait-join` - Get multiplayer games waiting for players
+- `POST /api/games/create` - Create a new multiplayer game
+- `POST /api/games/vs-bot` - Create a bot game with difficulty and style configuration
+  - Request: `{ CreatorId, Difficulty (1-6), Style (0-2), TimeControl }`
+  - Returns: Game ID
+- `POST /api/games/join` - Join an existing multiplayer game
+- `POST /api/games/move` - Make a move in a game (triggers bot response if applicable)
+  - Request: `{ GameId, UserId, Move (UCI), NewFen, IsCheckmate, IsStalemate, IsDraw }`
+
+### Analysis
+- `POST /api/games/analyze` - Analyze position with Stockfish engine (single best move)
+  - Request: `{ Fen, Depth }`
+  - Returns: `{ bestMove }`
+- `POST /api/games/analyze-multipv` - Multi-PV analysis (multiple best moves)
+  - Request: `{ Fen, Depth, MultiPv }`
+  - Returns: `{ lines: [...], depth }`
 
 ### SignalR Hub
 - `/api/gamehub` - WebSocket connection for real-time gameplay
+
+## Bot System Architecture
+
+The chess bot system provides intelligent AI opponents with configurable difficulty and playing styles.
+
+### Components
+
+#### StockfishEngine (IHostedService)
+- Manages Stockfish chess engine process lifecycle
+- Handles UCI protocol communication via stdin/stdout
+- Uses channels for asynchronous request queuing
+- Supports single-move and multi-PV analysis
+
+#### BotService (IBotService)
+- **Move Selection Logic**: Coordinates difficulty-based move selection
+- **Difficulty Levels** (6 levels):
+  - `Beginner` (1): 400-600 rating, 60% worst moves
+  - `Easy` (3): 800-1000 rating, 40% medium moves
+  - `Medium` (6): 1200-1400 rating, balanced selection
+  - `Hard` (10): 1600-1800 rating, mostly best moves
+  - `Expert` (15): 2000-2200 rating, nearly perfect
+  - `Master` (20): 2400+ rating, always best move
+- **Playing Styles**:
+  - `Balanced` (0): Standard play without bias
+  - `Aggressive` (1): Prefers captures and tactical complications
+  - `Solid` (2): Prefers quiet positional moves
+- **Blunder Prevention**: Filters obviously bad moves based on difficulty
+- **Capture Priority**: Detects and captures hanging pieces (difficulty-dependent)
+- **Realistic Delays**: Adds thinking time (500ms to 5000ms based on difficulty)
+
+#### BotMoveBackgroundService
+- `BackgroundService` for processing bot moves asynchronously
+- Uses unbounded channels for move request queuing
+- Applies moves and updates game state
+- Handles game termination (checkmate, stalemate, draws)
+
+### Bot Game Flow
+1. User creates bot game via `POST /api/games/vs-bot`
+2. Player makes move via `POST /api/games/move`
+3. Move enqueued to `BotMoveBackgroundService`
+4. `BotService` requests multi-PV analysis from `StockfishEngine`
+5. Moves filtered by blunder prevention
+6. Capture priority check for hanging pieces
+7. Style preference applied (aggressive/solid)
+8. Final move selected with difficulty-appropriate randomization
+9. Move applied and saved to database
+10. Clients notified via SignalR hub
 
 ## Configuration Notes
 

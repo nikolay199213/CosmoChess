@@ -6,6 +6,48 @@ All notable changes to the CosmoChess project.
 
 ### Added
 
+#### Chess Bot System
+- **Bot Opponents with AI Intelligence** (PR #11, #13):
+  - Stockfish-powered chess bot with 6 difficulty levels (Beginner to Master)
+  - Estimated ratings from 400-600 (Beginner) to 2400+ (Master)
+  - Multi-PV analysis for realistic move selection
+  - Difficulty-based move probability distribution
+  - Realistic thinking delays (500ms to 5000ms)
+
+- **Playing Styles** (PR #11):
+  - **Aggressive**: Prefers attacks, captures, and tactical complications
+  - **Balanced**: Well-rounded play without bias
+  - **Solid**: Positional and defensive play, avoiding complications
+  - Style strength varies by difficulty level
+
+- **Blunder Prevention System** (PR #13):
+  - Difficulty-appropriate filtering of obviously bad moves
+  - Thresholds: Beginner (no filter), Easy (-300cp), Medium (-200cp), Hard (-150cp), Expert/Master (-100cp)
+  - Prevents unrealistic mistakes while maintaining difficulty accuracy
+  - Fallback to top 3 moves if all moves filtered
+
+- **Capture Priority** (PR #13):
+  - Detects hanging pieces worth capturing (>200cp advantage)
+  - Difficulty-based capture probability (50% Beginner to 98% Master)
+  - Material thresholds: minor piece (200cp), rook (500cp), queen (900cp)
+
+- **Captured Pieces Display** (PR #12):
+  - Visual display of captured pieces with Unicode symbols
+  - Real-time piece count tracking
+  - Sorted by piece value (queen to pawn)
+
+- **Material Advantage Calculation** (PR #12, #13):
+  - Real-time material evaluation in centipawns
+  - Displayed in whole pawns with +/- indicator
+  - Green highlighting for visual clarity
+  - Material values: pawn (100), knight (320), bishop (330), rook (500), queen (900)
+
+- **Bot Game API**:
+  - `POST /api/games/vs-bot` - Create bot game with difficulty and style
+  - `POST /api/games/analyze-multipv` - Multi-PV position analysis
+  - PlayBotView.vue - Frontend UI for bot game creation
+  - BotMoveBackgroundService for asynchronous bot move processing
+
 #### Documentation
 - **CONFIGURATION.md** - Comprehensive configuration reference with:
   - Critical configuration points (SignalR paths, middleware order, HTTPS redirection)
@@ -30,22 +72,46 @@ All notable changes to the CosmoChess project.
 
 #### Documentation Updates
 - **README.md** - Enhanced main documentation:
-  - Added production deployment section
+  - Added comprehensive Features section with bot system details
+  - Bot difficulty levels and playing styles overview
+  - Captured pieces and material advantage features
+  - Production deployment section
   - Updated architecture details with specific ports
   - Added CI/CD information
   - Added links to all documentation files
 
 - **backend/README.md** - Backend documentation improvements:
+  - **Bot System Architecture section** with component details:
+    - StockfishEngine lifecycle and UCI protocol
+    - BotService difficulty levels, styles, and algorithms
+    - BotMoveBackgroundService async processing
+    - Complete bot game flow diagram
+  - Updated API endpoints with bot endpoints and request/response formats
+  - Analysis endpoints (analyze and analyze-multipv)
   - Production configuration section
   - Environment variables reference
-  - API endpoints list
   - Configuration notes with code examples
 
 - **frontend/README.md** - Frontend documentation improvements:
+  - Bot game features and UI components
+  - Captured pieces display and material advantage
+  - PlayBotView component documentation
+  - PlayerInfo component with material advantage display
+  - Material calculation utilities (capturedPieces.js)
+  - Updated API integration section with bot endpoints
+  - Components overview with new views and utilities
   - Updated Docker deployment section
   - Added SignalR connection details
   - Nginx configuration split (frontend container vs main proxy)
   - Fixed port numbers (8080 instead of 80)
+
+- **CHANGELOG.md** - Comprehensive bot system documentation:
+  - Chess bot system features and implementation details
+  - Difficulty levels with thresholds and behavior
+  - Playing styles with characteristics
+  - Blunder prevention algorithm
+  - Capture priority system
+  - Material advantage calculation
 
 ### Fixed
 
