@@ -18,6 +18,7 @@ namespace CosmoChess.Domain.Entities
         public GameEndReason EndReason { get; private set; } = GameEndReason.None;
         public string CurrentFen { get; private set; } = InitialFen;
         public BotDifficulty? BotDifficulty { get; private set; }
+        public BotStyle? BotStyle { get; private set; }
 
         // Timer fields
         public TimeControl TimeControl { get; private set; } = TimeControl.None;
@@ -38,12 +39,13 @@ namespace CosmoChess.Domain.Entities
         }
 
         // Constructor for human vs bot games
-        public Game(Guid whitePlayerId, BotDifficulty botDifficulty, TimeControl timeControl = TimeControl.None)
+        public Game(Guid whitePlayerId, BotDifficulty botDifficulty, BotStyle botStyle = Enums.BotStyle.Balanced, TimeControl timeControl = TimeControl.None)
         {
             WhitePlayerId = whitePlayerId;
             BlackPlayerId = BotPlayerId;
             GameType = GameType.HumanVsBot;
             BotDifficulty = botDifficulty;
+            BotStyle = botStyle;
             GameResult = GameResult.InProgress; // Bot games start immediately
             TimeControl = timeControl;
             LastMoveTime = DateTime.UtcNow;

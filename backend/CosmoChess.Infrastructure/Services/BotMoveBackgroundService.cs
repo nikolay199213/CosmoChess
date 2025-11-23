@@ -15,6 +15,7 @@ namespace CosmoChess.Infrastructure.Services
         public Guid GameId { get; init; }
         public string CurrentFen { get; init; } = string.Empty;
         public BotDifficulty Difficulty { get; init; }
+        public BotStyle Style { get; init; } = BotStyle.Balanced;
     }
 
     public class BotMoveResult
@@ -96,7 +97,7 @@ namespace CosmoChess.Infrastructure.Services
             await Task.Delay(delay, cancellationToken);
 
             // Get best move from engine (UCI format like "e2e4")
-            var uciMove = await _botService.GetBotMoveAsync(request.CurrentFen, request.Difficulty, cancellationToken);
+            var uciMove = await _botService.GetBotMoveAsync(request.CurrentFen, request.Difficulty, request.Style, cancellationToken);
 
             // Use Gera.Chess to apply move, check game state and get new FEN
             var board = ChessBoard.LoadFromFen(request.CurrentFen);

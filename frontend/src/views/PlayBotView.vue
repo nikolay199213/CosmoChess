@@ -22,6 +22,22 @@
       </div>
 
       <div class="setting-card">
+        <h2>Playing Style</h2>
+        <div class="style-options">
+          <button
+            v-for="style in styles"
+            :key="style.value"
+            :class="['style-btn', { active: selectedStyle === style.value }]"
+            @click="selectedStyle = style.value"
+          >
+            <span class="style-icon">{{ style.icon }}</span>
+            <span class="style-name">{{ style.name }}</span>
+            <span class="style-desc">{{ style.description }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="setting-card">
         <h2>Time Control</h2>
         <select v-model="selectedTimeControl" class="time-control-select">
           <option value="0">No time control</option>
@@ -60,6 +76,7 @@ export default {
   data() {
     return {
       selectedDifficulty: 3, // Medium by default
+      selectedStyle: 0, // Balanced by default
       selectedTimeControl: 0,
       creatingGame: false,
       error: '',
@@ -70,6 +87,11 @@ export default {
         { value: 4, name: 'Hard', rating: '1600-1800' },
         { value: 5, name: 'Expert', rating: '2000-2200' },
         { value: 6, name: 'Master', rating: '2400+' }
+      ],
+      styles: [
+        { value: 0, name: 'Balanced', icon: '⚖️', description: 'Well-rounded play' },
+        { value: 1, name: 'Aggressive', icon: '⚔️', description: 'Attacks and tactics' },
+        { value: 2, name: 'Solid', icon: '🛡️', description: 'Positional and defensive' }
       ]
     }
   },
@@ -81,6 +103,7 @@ export default {
       try {
         const result = await gameService.createBotGame(
           this.selectedDifficulty,
+          this.selectedStyle,
           parseInt(this.selectedTimeControl)
         )
 
@@ -206,6 +229,59 @@ export default {
   color: var(--cosmic-stars, #C5D4FF);
   font-size: 0.8rem;
   opacity: 0.8;
+}
+
+.style-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .style-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.style-btn {
+  background: rgba(27, 35, 64, 0.6);
+  border: 1px solid rgba(197, 212, 255, 0.15);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.style-btn:hover {
+  border-color: rgba(122, 76, 224, 0.3);
+  box-shadow: 0 0 15px rgba(122, 76, 224, 0.2);
+}
+
+.style-btn.active {
+  background: linear-gradient(135deg, rgba(122, 76, 224, 0.3) 0%, rgba(157, 113, 255, 0.2) 100%);
+  border-color: rgba(122, 76, 224, 0.5);
+  box-shadow: 0 0 20px rgba(122, 76, 224, 0.3);
+}
+
+.style-icon {
+  font-size: 2rem;
+}
+
+.style-name {
+  color: var(--cosmic-figures, #F2F2F2);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.style-desc {
+  color: var(--cosmic-stars, #C5D4FF);
+  font-size: 0.75rem;
+  opacity: 0.8;
+  text-align: center;
 }
 
 .time-control-select {

@@ -6,6 +6,7 @@ namespace CosmoChess.Application.Commands
     public record CreateBotGameCommand(
         Guid CreatorId,
         BotDifficulty Difficulty,
+        BotStyle Style = BotStyle.Balanced,
         TimeControl TimeControl = TimeControl.None
     ) : IRequest<Guid>;
 }

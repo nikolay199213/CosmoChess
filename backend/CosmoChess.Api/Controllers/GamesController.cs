@@ -57,7 +57,7 @@ namespace CosmoChess.Api.Controllers
         [HttpPost("vs-bot")]
         public async Task<IActionResult> CreateBotGame([FromBody] CreateBotGameDto dto)
         {
-            var command = new CreateBotGameCommand(dto.CreatorId, dto.Difficulty, dto.TimeControl);
+            var command = new CreateBotGameCommand(dto.CreatorId, dto.Difficulty, dto.Style, dto.TimeControl);
             var gameId = await mediator.Send(command);
             return Ok(gameId);
         }
@@ -140,7 +140,8 @@ namespace CosmoChess.Api.Controllers
                     {
                         GameId = dto.GameId,
                         CurrentFen = dto.NewFen,
-                        Difficulty = gameEntity.BotDifficulty.Value
+                        Difficulty = gameEntity.BotDifficulty.Value,
+                        Style = gameEntity.BotStyle ?? BotStyle.Balanced
                     };
 
                     // Process bot move asynchronously
@@ -207,6 +208,7 @@ namespace CosmoChess.Api.Controllers
     public record CreateBotGameDto(
         Guid CreatorId,
         BotDifficulty Difficulty,
+        BotStyle Style = BotStyle.Balanced,
         TimeControl TimeControl = TimeControl.None
     );
 

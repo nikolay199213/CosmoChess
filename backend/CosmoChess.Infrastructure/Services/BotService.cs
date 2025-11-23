@@ -17,13 +17,13 @@ namespace CosmoChess.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<string> GetBotMoveAsync(string fen, BotDifficulty difficulty, CancellationToken cancellationToken = default)
+        public async Task<string> GetBotMoveAsync(string fen, BotDifficulty difficulty, BotStyle style = BotStyle.Balanced, CancellationToken cancellationToken = default)
         {
             var depth = GetDepthForDifficulty(difficulty);
             var multiPv = GetMultiPvForDifficulty(difficulty);
 
-            _logger.LogInformation("Bot calculating move for difficulty {Difficulty} at depth {Depth}, multiPv {MultiPv}",
-                difficulty, depth, multiPv);
+            _logger.LogInformation("Bot calculating move for difficulty {Difficulty}, style {Style} at depth {Depth}, multiPv {MultiPv}",
+                difficulty, style, depth, multiPv);
 
             try
             {
@@ -40,8 +40,11 @@ namespace CosmoChess.Infrastructure.Services
                 // Choose move based on difficulty (add mistakes for weaker bots)
                 var selectedMove = SelectMoveByDifficulty(analysis.Lines, difficulty);
 
-                _logger.LogInformation("Bot calculated {LineCount} moves, selected: {Move}",
-                    analysis.Lines.Count, selectedMove);
+                // Apply style preference
+                selectedMove = ApplyStylePreference(analysis.Lines, selectedMove, style, difficulty);
+
+                _logger.LogInformation("Bot calculated {LineCount} moves, selected: {Move} (style: {Style})",
+                    analysis.Lines.Count, selectedMove, style);
 
                 return selectedMove;
             }
@@ -159,6 +162,84 @@ namespace CosmoChess.Infrastructure.Services
                 BotDifficulty.Master => 20,
                 _ => 10
             };
+        }
+
+        private string ApplyStylePreference(IReadOnlyList<Domain.ValueObject.AnalysisLine> lines, string selectedMove, BotStyle style, BotDifficulty difficulty)
+        {
+            if (style == BotStyle.Balanced || lines.Count <= 1)
+                return selectedMove;
+
+            // For Expert/Master bots, style should have less impact (only subtle preference)
+            var styleStrength = difficulty switch
+            {
+                BotDifficulty.Beginner => 70,  // 70% chance to apply style
+                BotDifficulty.Easy => 60,
+                BotDifficulty.Medium => 50,
+                BotDifficulty.Hard => 30,
+                _ => 15  // Expert/Master - subtle style preference
+            };
+
+            // Random chance to apply style
+            if (_random.Next(100) >= styleStrength)
+                return selectedMove;
+
+            return style switch
+            {
+                BotStyle.Aggressive => SelectAggressiveMove(lines, selectedMove),
+                BotStyle.Solid => SelectSolidMove(lines, selectedMove),
+                _ => selectedMove
+            };
+        }
+
+        private string SelectAggressiveMove(IReadOnlyList<Domain.ValueObject.AnalysisLine> lines, string fallback)
+        {
+            // Prefer moves with captures or tactical complications
+            // In UCI: captures often involve different files (e2e4 vs e2d4 - capture on d4)
+            var aggressiveMoves = lines
+                .Where(l => IsAggressiveMove(l))
+                .Take(Math.Max(1, lines.Count / 2))
+                .ToList();
+
+            if (aggressiveMoves.Count == 0)
+                return fallback;
+
+            var randomIndex = _random.Next(aggressiveMoves.Count);
+            return aggressiveMoves[randomIndex].Move;
+        }
+
+        private string SelectSolidMove(IReadOnlyList<Domain.ValueObject.AnalysisLine> lines, string fallback)
+        {
+            // Prefer quiet moves without captures
+            var solidMoves = lines
+                .Where(l => !IsAggressiveMove(l))
+                .Take(Math.Max(1, lines.Count / 2))
+                .ToList();
+
+            if (solidMoves.Count == 0)
+                return fallback;
+
+            // Pick from the best quiet moves
+            var randomIndex = _random.Next(Math.Min(3, solidMoves.Count));
+            return solidMoves[randomIndex].Move;
+        }
+
+        private static bool IsAggressiveMove(Domain.ValueObject.AnalysisLine line)
+        {
+            // Check if PV (principal variation) contains captures or sharp play
+            // Captures in UCI notation: e2d4 (different files usually means capture)
+            // Also look for large score swings indicating tactical complications
+            if (string.IsNullOrEmpty(line.Pv))
+                return false;
+
+            var firstMove = line.Pv.Split(' ').FirstOrDefault() ?? "";
+
+            // If move changes file significantly, it's likely a capture or tactical
+            // Also if score is very high/low (sharp position)
+            var isSharpScore = Math.Abs(line.Score) > 100;
+            var looksLikeCapture = firstMove.Length >= 4 &&
+                                    firstMove[0] != firstMove[2]; // Different files
+
+            return looksLikeCapture || isSharpScore;
         }
     }
 }

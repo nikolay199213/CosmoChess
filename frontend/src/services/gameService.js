@@ -51,10 +51,10 @@ class GameService {
     }
   }
 
-  async createBotGame(difficulty, timeControl = 0) {
+  async createBotGame(difficulty, style = 0, timeControl = 0) {
     try {
       const userId = authService.getUserId()
-      console.log('Creating bot game with userId:', userId, 'difficulty:', difficulty, 'timeControl:', timeControl)
+      console.log('Creating bot game with userId:', userId, 'difficulty:', difficulty, 'style:', style, 'timeControl:', timeControl)
 
       if (!userId) {
         console.error('User not authenticated - no userId found')
@@ -64,6 +64,7 @@ class GameService {
       const response = await axios.post('/games/vs-bot', {
         CreatorId: userId,
         Difficulty: difficulty,
+        Style: style,
         TimeControl: timeControl
       })
 
