@@ -53,15 +53,20 @@
           class="eval-bar-mobile"
         />
 
-        <GameTimer
-          v-if="hasTimeControl && !analysisMode"
-          :timeSeconds="blackTimeRemaining"
-          :isActive="chess.turn() === 'b' && gameResult === 1"
-          :label="blackPlayerLabel"
-        />
-        <div v-else class="player-info player-black">
-          <span class="player-name">{{ blackPlayerLabel }}</span>
+        <div v-if="hasTimeControl && !analysisMode" class="player-section">
+          <GameTimer
+            :timeSeconds="blackTimeRemaining"
+            :isActive="chess.turn() === 'b' && gameResult === 1"
+            :label="blackPlayerLabel"
+          />
         </div>
+        <PlayerInfo
+          v-else
+          :label="blackPlayerLabel"
+          :fen="currentFen"
+          playerColor="black"
+          :isActive="chess.turn() === 'b' && gameResult === 1"
+        />
 
         <div class="chessboard-container">
           <div class="board-wrapper">
@@ -73,15 +78,20 @@
           </div>
         </div>
 
-        <GameTimer
-          v-if="hasTimeControl && !analysisMode"
-          :timeSeconds="whiteTimeRemaining"
-          :isActive="chess.turn() === 'w' && gameResult === 1"
-          :label="whitePlayerLabel"
-        />
-        <div v-else class="player-info player-white">
-          <span class="player-name">{{ whitePlayerLabel }}</span>
+        <div v-if="hasTimeControl && !analysisMode" class="player-section">
+          <GameTimer
+            :timeSeconds="whiteTimeRemaining"
+            :isActive="chess.turn() === 'w' && gameResult === 1"
+            :label="whitePlayerLabel"
+          />
         </div>
+        <PlayerInfo
+          v-else
+          :label="whitePlayerLabel"
+          :fen="currentFen"
+          playerColor="white"
+          :isActive="chess.turn() === 'w' && gameResult === 1"
+        />
       </div>
 
       <div class="game-sidebar">
@@ -193,13 +203,15 @@ import { gameConnectionService } from '../services/gameConnectionService'
 import { markRaw } from 'vue'
 import GameTimer from '../components/GameTimer.vue'
 import EvaluationBar from '../components/EvaluationBar.vue'
+import PlayerInfo from '../components/PlayerInfo.vue'
 
 export default {
   name: 'GameView',
   components: {
     TheChessboard,
     GameTimer,
-    EvaluationBar
+    EvaluationBar,
+    PlayerInfo
   },
   props: {
     gameId: {
@@ -1351,22 +1363,8 @@ export default {
   width: 100%;
 }
 
-.player-info {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  background: rgba(27, 35, 64, 0.6);
-  border: 1px solid rgba(197, 212, 255, 0.15);
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-}
-
-.player-name {
-  font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--cosmic-figures, #F2F2F2);
+.player-section {
+  width: 100%;
 }
 
 .connection-status {
