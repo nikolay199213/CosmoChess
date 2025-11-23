@@ -43,12 +43,7 @@ class MenuFragment : Fragment() {
         }
 
         playOnlineButton.setOnClickListener {
-            // TODO: Implement online multiplayer game list
-            android.widget.Toast.makeText(
-                context,
-                "Online multiplayer coming soon!",
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
+            findNavController().navigate(R.id.action_menu_to_online_games)
         }
 
         logoutButton.setOnClickListener {

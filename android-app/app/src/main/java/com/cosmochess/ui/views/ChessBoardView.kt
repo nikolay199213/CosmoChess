@@ -7,6 +7,7 @@ import android.view.MotionEvent
 import android.view.View
 import com.cosmochess.R
 import com.cosmochess.chess.ChessEngine
+import com.cosmochess.chess.LegalMovesCalculator
 
 class ChessBoardView @JvmOverloads constructor(
     context: Context,
@@ -15,6 +16,7 @@ class ChessBoardView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val chessEngine = ChessEngine()
+    private val legalMovesCalculator = LegalMovesCalculator()
     private var boardState: ChessEngine.BoardState = chessEngine.parseFEN(ChessEngine.STARTING_FEN)
 
     private val lightSquarePaint = Paint().apply {
@@ -145,7 +147,8 @@ class ChessBoardView @JvmOverloads constructor(
             val isWhite = boardState.isWhitePiece(piece)
             if (isWhite == boardState.whiteToMove) {
                 selectedSquare = square
-                highlightedSquares = chessEngine.getLegalMoves(boardState, square)
+                val legalMoves = legalMovesCalculator.getLegalMoves(boardState, pos)
+                highlightedSquares = legalMoves.map { it.toSquare() }
                 invalidate()
             }
         } else {
