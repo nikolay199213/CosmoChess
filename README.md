@@ -1,6 +1,19 @@
 # CosmoChess
 
-CosmoChess is a full-stack web application for playing chess in real-time. It includes user authentication, creating and joining games, and position analysis using a chess engine.
+CosmoChess is a full-stack web application for playing chess in real-time. It includes user authentication, multiplayer games, AI bot opponents with configurable difficulty and playing styles, and position analysis using the Stockfish chess engine.
+
+## Features
+
+- **User Authentication**: Secure JWT-based authentication with login and registration
+- **Multiplayer Chess**: Create and join games to play against other players in real-time via WebSockets
+- **AI Bot Opponents**: Play against intelligent chess bots powered by Stockfish
+  - **6 Difficulty Levels**: Beginner (400-600), Easy (800-1000), Medium (1200-1400), Hard (1600-1800), Expert (2000-2200), Master (2400+)
+  - **3 Playing Styles**: Aggressive (prefers attacks & tactics), Balanced (well-rounded play), Solid (positional & defensive)
+  - **Smart Move Selection**: Difficulty-based randomization with blunder prevention
+  - **Realistic Behavior**: Bots miss captures and make mistakes appropriate to their level
+- **Interactive Chessboard**: Professional drag-and-drop interface with legal move highlighting
+- **Game Analysis**: Captured pieces display with real-time material advantage calculation
+- **Position Analysis**: Stockfish integration for analyzing chess positions
 
 ## Technology & Architecture
 

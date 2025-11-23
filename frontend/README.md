@@ -5,9 +5,16 @@ Vue.js frontend for the CosmoChess platform with nginx, Vue.js, and custom chess
 ## Features
 
 - **Authentication**: Login and registration pages with JWT token management
-- **Games List**: View available games waiting for players to join
-- **Chessboard**: Interactive chessboard for playing chess games
-- **Game Management**: Create new games, join existing games, and make moves
+- **Multiplayer Games**: View and join games waiting for players
+- **AI Bot Games**: Play against configurable chess bots
+  - Select from 6 difficulty levels (Beginner to Master)
+  - Choose playing style (Aggressive, Balanced, Solid)
+  - Configure time controls
+- **Interactive Chessboard**: Professional drag-and-drop chessboard for playing games
+- **Game Analysis Features**:
+  - Captured pieces display with piece counts
+  - Real-time material advantage calculation (in pawns)
+  - Visual indicators for who is ahead
 - **Position Analysis**: Integration with Stockfish engine for position analysis
 
 ## Technology Stack
@@ -85,13 +92,20 @@ docker run -p 8080:8080 cosmochess-frontend
 
 The frontend communicates with the backend API through the following endpoints:
 
+### Authentication
 - `POST /api/auth/login` - User authentication
 - `POST /api/auth/register` - User registration
+
+### Game Management
 - `GET /api/games/wait-join` - Get games waiting for players
-- `POST /api/games/create` - Create a new game
+- `POST /api/games/create` - Create a new multiplayer game
+- `POST /api/games/vs-bot` - Create a new bot game with difficulty and style
 - `POST /api/games/join` - Join an existing game
 - `POST /api/games/move` - Make a move in a game
-- `POST /api/games/analyze` - Analyze a chess position
+
+### Analysis
+- `POST /api/games/analyze` - Analyze a chess position with Stockfish
+- `POST /api/games/analyze-multipv` - Get multiple principal variations from Stockfish
 
 ### SignalR Real-time Connection
 
@@ -103,11 +117,22 @@ The frontend communicates with the backend API through the following endpoints:
 ### Views
 - **LoginView**: Authentication page with login/register forms
 - **GamesView**: List of available games and user's created games
+- **PlayBotView**: Bot game creation with difficulty and style selection
 - **GameView**: Interactive chessboard for playing games
+
+### Components
+- **PlayerInfo.vue**: Displays player name, captured pieces, and material advantage
+- **Chessboard**: Interactive chessboard with drag-and-drop and move highlighting
 
 ### Services
 - **authService**: Handles authentication, token management, and user session
 - **gameService**: Manages game operations like creating, joining, and making moves
+
+### Utilities
+- **capturedPieces.js**: Material advantage calculations and captured pieces tracking
+  - Piece valuation (pawn=100, knight=320, bishop=330, rook=500, queen=900)
+  - FEN parsing and piece counting
+  - Material advantage computation
 
 ### Features
 - **JWT Authentication**: Secure authentication with automatic token management
