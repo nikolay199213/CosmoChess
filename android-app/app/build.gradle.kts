@@ -69,6 +69,9 @@ dependencies {
     // SignalR for real-time communication
     implementation("com.microsoft.signalr:signalr:8.0.0")
 
+    // RxJava (required by SignalR)
+    implementation("io.reactivex.rxjava3:rxjava:3.1.8")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
