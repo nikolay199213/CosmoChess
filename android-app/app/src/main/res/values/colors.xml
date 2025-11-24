@@ -20,4 +20,7 @@
     <color name="error">#B00020</color>
     <color name="text_primary">#212121</color>
     <color name="text_secondary">#757575</color>
+
+    <!-- Launcher Icon -->
+    <color name="ic_launcher_background">#6200EE</color>
 </resources>
