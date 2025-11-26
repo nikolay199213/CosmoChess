@@ -6,6 +6,7 @@ import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.HubConnectionState
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,7 +33,7 @@ class SignalRManager(private val baseUrl: String, private val token: String?) {
 
         // Add authorization header if token is available
         if (token != null) {
-            builder.withAccessTokenProvider { Single.just(token) }
+            builder.withAccessTokenProvider(Single.just(token))
         }
 
         hubConnection = builder.build()
@@ -56,12 +57,15 @@ class SignalRManager(private val baseUrl: String, private val token: String?) {
         // Start connection
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                hubConnection?.start()?.get()
-                Log.d(TAG, "SignalR connected successfully")
+                val connection = hubConnection
+                if (connection != null) {
+                    connection.start().blockingAwait()
+                    Log.d(TAG, "SignalR connected successfully")
 
-                // Join game room
-                hubConnection?.send("JoinGame", gameId)?.get()
-                Log.d(TAG, "Joined game room: $gameId")
+                    // Join game room
+                    connection.send("JoinGame", gameId)
+                    Log.d(TAG, "Joined game room: $gameId")
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error connecting to SignalR: ${e.message}", e)
             }
@@ -70,7 +74,10 @@ class SignalRManager(private val baseUrl: String, private val token: String?) {
 
     fun disconnect() {
         try {
-            hubConnection?.stop()?.get()
+            val connection = hubConnection
+            if (connection != null) {
+                connection.stop().blockingAwait()
+            }
             Log.d(TAG, "SignalR disconnected")
         } catch (e: Exception) {
             Log.e(TAG, "Error disconnecting from SignalR: ${e.message}", e)

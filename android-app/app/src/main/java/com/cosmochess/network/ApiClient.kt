@@ -13,7 +13,7 @@ class ApiClient(private val context: Context) {
     // Change this to your backend URL
     // For local development: "http://10.0.2.2/" (Android emulator)
     // For production: your actual server URL
-    private val BASE_URL = "http://10.0.2.2/"
+    private val BASE_URL = "http://10.0.2.2:5000/"
 
     private val authInterceptor = Interceptor { chain ->
         val token = getToken()
