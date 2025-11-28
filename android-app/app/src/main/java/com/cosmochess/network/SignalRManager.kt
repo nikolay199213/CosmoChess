@@ -2,6 +2,7 @@ package com.cosmochess.network
 
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.HubConnectionState
@@ -38,21 +39,44 @@ class SignalRManager(private val baseUrl: String, private val token: String?) {
 
         hubConnection = builder.build()
 
-        // Subscribe to events
-        hubConnection?.on("ReceiveMove", { receivedGameId: String, move: String, newFen: String ->
-            Log.d(TAG, "Received move for game $receivedGameId: $move")
-            onMoveMade?.invoke(receivedGameId, move, newFen)
-        }, String::class.java, String::class.java, String::class.java)
+        // Subscribe to events (match backend event names)
+        // MoveReceived event from backend
+        hubConnection?.on("MoveReceived", { data: JsonObject ->
+            try {
+                val receivedGameId = data.get("gameId")?.asString ?: ""
+                val move = data.get("move")?.asString ?: ""
+                val newFen = data.get("newFen")?.asString ?: ""
+                Log.d(TAG, "MoveReceived for game $receivedGameId: $move, FEN: $newFen")
+                onMoveMade?.invoke(receivedGameId, move, newFen)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing MoveReceived event: ${e.message}", e)
+            }
+        }, JsonObject::class.java)
 
-        hubConnection?.on("GameOver", { receivedGameId: String, result: String ->
-            Log.d(TAG, "Game over for $receivedGameId: $result")
-            onGameOver?.invoke(receivedGameId, result)
-        }, String::class.java, String::class.java)
+        // GameStateChanged event from backend
+        hubConnection?.on("GameStateChanged", { data: JsonObject ->
+            try {
+                val receivedGameId = data.get("gameId")?.asString ?: ""
+                val gameResult = data.get("gameResult")?.asInt ?: 0
+                val endReason = data.get("endReason")?.asInt ?: 0
+                Log.d(TAG, "GameStateChanged for $receivedGameId: result=$gameResult, reason=$endReason")
+                onGameOver?.invoke(receivedGameId, "Result: $gameResult")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing GameStateChanged event: ${e.message}", e)
+            }
+        }, JsonObject::class.java)
 
-        hubConnection?.on("PlayerJoined", { receivedGameId: String, playerName: String ->
-            Log.d(TAG, "Player joined game $receivedGameId: $playerName")
-            onPlayerJoined?.invoke(receivedGameId, playerName)
-        }, String::class.java, String::class.java)
+        // PlayerJoined event from backend
+        hubConnection?.on("PlayerJoined", { data: JsonObject ->
+            try {
+                val receivedGameId = data.get("gameId")?.asString ?: ""
+                val username = data.get("username")?.asString ?: "Player"
+                Log.d(TAG, "PlayerJoined game $receivedGameId: $username")
+                onPlayerJoined?.invoke(receivedGameId, username)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing PlayerJoined event: ${e.message}", e)
+            }
+        }, JsonObject::class.java)
 
         // Start connection
         CoroutineScope(Dispatchers.IO).launch {

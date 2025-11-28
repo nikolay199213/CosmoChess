@@ -17,7 +17,12 @@ data class RegisterRequest(
     val password: String
 )
 
+// Login response (only contains token, userId is parsed from JWT)
 data class AuthResponse(
-    val token: String,
-    val user: User
+    val token: String
+)
+
+// Register response (only contains userId)
+data class RegisterResponse(
+    val userId: String
 )

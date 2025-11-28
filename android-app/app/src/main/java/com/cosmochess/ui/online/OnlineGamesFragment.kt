@@ -120,11 +120,11 @@ class OnlineGamesFragment : Fragment() {
                 progressBar.visibility = View.GONE
 
                 if (result.isSuccess) {
-                    val game = result.getOrNull()!!
+                    val gameId = result.getOrNull()!!
                     Toast.makeText(context, "Game created! Waiting for opponent...", Toast.LENGTH_SHORT).show()
                     findNavController().navigate(
                         R.id.action_online_games_to_game,
-                        bundleOf("gameId" to game.id)
+                        bundleOf("gameId" to gameId)
                     )
                 } else {
                     Toast.makeText(

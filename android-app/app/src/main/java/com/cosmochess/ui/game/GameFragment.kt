@@ -89,7 +89,9 @@ class GameFragment : Fragment() {
     }
 
     private fun connectToSignalR() {
-        signalRManager = SignalRManager(apiClient.getBaseUrl(), null).apply {
+        val token = authRepository.getToken()
+        Log.d(TAG, "Connecting to SignalR with token: ${if (token != null) "present" else "null"}")
+        signalRManager = SignalRManager(apiClient.getBaseUrl(), token).apply {
             onMoveMade = { receivedGameId, move, newFen ->
                 if (receivedGameId == gameId) {
                     requireActivity().runOnUiThread {

@@ -6,7 +6,7 @@ import retrofit2.http.*
 
 interface ApiService {
     @POST("api/auth/register")
-    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+    suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
 
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
@@ -14,15 +14,20 @@ interface ApiService {
     @GET("api/games/wait-join")
     suspend fun getWaitingGames(): Response<List<Game>>
 
+    // Returns gameId as a string
     @POST("api/games/create")
-    suspend fun createGame(@Body request: CreateGameRequest): Response<Game>
+    suspend fun createGame(@Body request: CreateGameRequest): Response<String>
 
+    // Returns gameId as a string
     @POST("api/games/vs-bot")
-    suspend fun createBotGame(@Body request: CreateBotGameRequest): Response<Game>
+    suspend fun createBotGame(@Body request: CreateBotGameRequest): Response<String>
 
     @POST("api/games/join")
-    suspend fun joinGame(@Body request: JoinGameRequest): Response<Game>
+    suspend fun joinGame(@Body request: JoinGameRequest): Response<Unit>
 
     @POST("api/games/move")
-    suspend fun makeMove(@Body request: MoveRequest): Response<MoveResponse>
+    suspend fun makeMove(@Body request: MoveRequest): Response<Unit>
+
+    @GET("api/games/{id}")
+    suspend fun getGameById(@Path("id") gameId: String): Response<Game>
 }

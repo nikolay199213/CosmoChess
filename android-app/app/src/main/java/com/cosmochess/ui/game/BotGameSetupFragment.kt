@@ -89,10 +89,10 @@ class BotGameSetupFragment : Fragment() {
                 startGameButton.isEnabled = true
 
                 if (result.isSuccess) {
-                    val game = result.getOrNull()!!
+                    val gameId = result.getOrNull()!!
                     findNavController().navigate(
                         R.id.action_bot_setup_to_game,
-                        bundleOf("gameId" to game.id)
+                        bundleOf("gameId" to gameId)
                     )
                 } else {
                     Toast.makeText(

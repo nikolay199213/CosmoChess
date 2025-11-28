@@ -19,11 +19,13 @@ class GameRepository(private val apiClient: ApiClient, private val context: Cont
         }
     }
 
-    suspend fun createGame(creatorId: String): Result<Game> {
+    suspend fun createGame(creatorId: String): Result<String> {
         return try {
             val response = apiClient.apiService.createGame(CreateGameRequest(creatorId))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                // Remove quotes from the response if present
+                val gameId = response.body()!!.trim('"')
+                Result.success(gameId)
             } else {
                 Result.failure(Exception("Failed to create game: ${response.message()}"))
             }
@@ -36,13 +38,15 @@ class GameRepository(private val apiClient: ApiClient, private val context: Cont
         creatorId: String,
         difficulty: Int = 3,
         style: Int = 0
-    ): Result<Game> {
+    ): Result<String> {
         return try {
             val response = apiClient.apiService.createBotGame(
                 CreateBotGameRequest(creatorId, difficulty, style)
             )
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                // Remove quotes from the response if present
+                val gameId = response.body()!!.trim('"')
+                Result.success(gameId)
             } else {
                 Result.failure(Exception("Failed to create bot game: ${response.message()}"))
             }
@@ -51,13 +55,26 @@ class GameRepository(private val apiClient: ApiClient, private val context: Cont
         }
     }
 
-    suspend fun joinGame(gameId: String, playerId: String): Result<Game> {
+    suspend fun joinGame(gameId: String, playerId: String): Result<Unit> {
         return try {
             val response = apiClient.apiService.joinGame(JoinGameRequest(gameId, playerId))
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to join game: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getGameById(gameId: String): Result<Game> {
+        return try {
+            val response = apiClient.apiService.getGameById(gameId)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("Failed to join game: ${response.message()}"))
+                Result.failure(Exception("Failed to get game: ${response.message()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -72,13 +89,13 @@ class GameRepository(private val apiClient: ApiClient, private val context: Cont
         isCheckmate: Boolean = false,
         isStalemate: Boolean = false,
         isDraw: Boolean = false
-    ): Result<MoveResponse> {
+    ): Result<Unit> {
         return try {
             val response = apiClient.apiService.makeMove(
                 MoveRequest(gameId, userId, move, newFen, isCheckmate, isStalemate, isDraw)
             )
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+            if (response.isSuccessful) {
+                Result.success(Unit)
             } else {
                 Result.failure(Exception("Failed to make move: ${response.message()}"))
             }
