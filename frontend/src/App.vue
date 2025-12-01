@@ -3,12 +3,24 @@
     <nav class="navbar">
       <div class="nav-container">
         <router-link to="/home" class="nav-title-link">
-          <h1 class="nav-title">CosmoChess</h1>
+          <h1 class="nav-title">{{ $t('app.name') }}</h1>
         </router-link>
         <div class="nav-links" v-if="isLoggedIn">
-          <router-link to="/home" class="nav-link">Home</router-link>
-          <router-link to="/games" class="nav-link">Games</router-link>
-          <button @click="logout" class="logout-btn">Logout</button>
+          <router-link to="/home" class="nav-link">{{ $t('app.home') }}</router-link>
+          <router-link to="/games" class="nav-link">{{ $t('app.games') }}</router-link>
+          <div class="language-switcher">
+            <button
+              @click="changeLocale('en')"
+              class="lang-btn"
+              :class="{ active: currentLocale === 'en' }"
+            >EN</button>
+            <button
+              @click="changeLocale('ru')"
+              class="lang-btn"
+              :class="{ active: currentLocale === 'ru' }"
+            >RU</button>
+          </div>
+          <button @click="logout" class="logout-btn">{{ $t('app.logout') }}</button>
         </div>
       </div>
     </nav>
@@ -20,18 +32,30 @@
 
 <script>
 import { authService } from './services/authService'
+import { useI18n } from 'vue-i18n'
 
 export default {
   name: 'App',
+  setup() {
+    const { locale } = useI18n()
+    return { locale }
+  },
   computed: {
     isLoggedIn() {
       return authService.isLoggedIn.value
+    },
+    currentLocale() {
+      return this.locale
     }
   },
   methods: {
     logout() {
       authService.logout()
       this.$router.push('/login')
+    },
+    changeLocale(newLocale) {
+      this.locale = newLocale
+      localStorage.setItem('locale', newLocale)
     }
   }
 }
@@ -160,6 +184,37 @@ body::after {
   color: var(--cosmic-figures);
   background: rgba(122, 76, 224, 0.2);
   box-shadow: 0 0 15px rgba(122, 76, 224, 0.3);
+}
+
+.language-switcher {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(27, 35, 64, 0.4);
+  border-radius: 8px;
+  padding: 0.25rem;
+}
+
+.lang-btn {
+  background: transparent;
+  color: var(--cosmic-stars);
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.lang-btn:hover {
+  background: rgba(122, 76, 224, 0.2);
+}
+
+.lang-btn.active {
+  background: rgba(122, 76, 224, 0.4);
+  color: var(--cosmic-figures);
+  box-shadow: 0 0 10px rgba(122, 76, 224, 0.3);
 }
 
 .logout-btn {
