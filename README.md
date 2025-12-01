@@ -31,7 +31,7 @@ The project consists of several key components orchestrated using Docker.
 - **Authentication:** JWT (JSON Web Tokens) based.
 - **Real-time:** SignalR for WebSocket-based real-time gameplay (endpoint: `/api/gamehub`).
 
-### Frontend
+### Web Frontend
 
 - **Framework:** Vue.js
 - **Build Tool:** Vite
@@ -39,6 +39,20 @@ The project consists of several key components orchestrated using Docker.
 - **Backend Interaction:**
     - REST API for core operations (game creation, login) via `/api/` endpoint.
     - WebSockets (via SignalR client) for real-time gameplay via `/api/gamehub`.
+
+### Mobile (Android)
+
+- **Language:** Kotlin
+- **Min SDK:** 24 (Android 7.0+)
+- **Architecture:** MVVM with Repository pattern
+- **Networking:** Retrofit (REST), SignalR (WebSocket)
+- **Features:**
+    - Native Android app with Material Design
+    - Play vs Bot with all difficulty levels and styles
+    - Online multiplayer with real-time synchronization
+    - Captured pieces display and move history
+    - Legal move validation and highlighting
+    - Beautiful Unicode chess pieces (♔♕♖♗♘♙)
 
 ### Infrastructure
 
@@ -92,7 +106,8 @@ The project uses GitHub Actions for automated deployment to production.
 ## Project Structure
 
 - `backend/`: Source code for the .NET backend application. [See README](backend/README.md)
-- `frontend/`: Source code for the Vue.js frontend application. [See README](frontend/README.md)
+- `frontend/`: Source code for the Vue.js web frontend application. [See README](frontend/README.md)
+- `android-app/`: Native Android mobile application. [See README](android-app/README.md)
 - `database/`: Contains scripts for database initialization.
 - `nginx/`: Configuration files for Nginx reverse proxy. [See README](nginx/README.md)
 - `docker-compose.yml`: Development environment configuration.
@@ -104,5 +119,6 @@ The project uses GitHub Actions for automated deployment to production.
 - [Configuration Reference](CONFIGURATION.md) - Important configuration details and common mistakes
 - [Deployment Guide](DEPLOYMENT.md) - Production deployment instructions
 - [Backend Documentation](backend/README.md) - Backend architecture and API
-- [Frontend Documentation](frontend/README.md) - Frontend setup and components
+- [Web Frontend Documentation](frontend/README.md) - Frontend setup and components
+- [Android App Documentation](android-app/README.md) - Mobile app setup and features
 - [Nginx Configuration](nginx/README.md) - Reverse proxy setup
