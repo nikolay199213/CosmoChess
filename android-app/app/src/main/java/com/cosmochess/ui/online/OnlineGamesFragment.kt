@@ -1,5 +1,6 @@
 package com.cosmochess.ui.online
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -17,6 +18,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.cosmochess.ChessApplication
 import com.cosmochess.R
 import com.cosmochess.data.model.Game
+import com.cosmochess.ui.game.WebViewGameActivity
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 
@@ -122,10 +124,11 @@ class OnlineGamesFragment : Fragment() {
                 if (result.isSuccess) {
                     val gameId = result.getOrNull()!!
                     Toast.makeText(context, "Game created! Waiting for opponent...", Toast.LENGTH_SHORT).show()
-                    findNavController().navigate(
-                        R.id.action_online_games_to_game,
-                        bundleOf("gameId" to gameId)
-                    )
+                    // Launch WebView activity instead of fragment navigation
+                    val intent = Intent(requireContext(), WebViewGameActivity::class.java).apply {
+                        putExtra("gameId", gameId)
+                    }
+                    startActivity(intent)
                 } else {
                     Toast.makeText(
                         context,
@@ -154,10 +157,11 @@ class OnlineGamesFragment : Fragment() {
 
                 if (result.isSuccess) {
                     Toast.makeText(context, "Joined game!", Toast.LENGTH_SHORT).show()
-                    findNavController().navigate(
-                        R.id.action_online_games_to_game,
-                        bundleOf("gameId" to game.id)
-                    )
+                    // Launch WebView activity instead of fragment navigation
+                    val intent = Intent(requireContext(), WebViewGameActivity::class.java).apply {
+                        putExtra("gameId", game.id)
+                    }
+                    startActivity(intent)
                 } else {
                     Toast.makeText(
                         context,

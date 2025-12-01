@@ -1,5 +1,6 @@
 package com.cosmochess.ui.game
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -90,10 +91,11 @@ class BotGameSetupFragment : Fragment() {
 
                 if (result.isSuccess) {
                     val gameId = result.getOrNull()!!
-                    findNavController().navigate(
-                        R.id.action_bot_setup_to_game,
-                        bundleOf("gameId" to gameId)
-                    )
+                    // Launch WebView activity instead of fragment navigation
+                    val intent = Intent(requireContext(), WebViewGameActivity::class.java).apply {
+                        putExtra("gameId", gameId)
+                    }
+                    startActivity(intent)
                 } else {
                     Toast.makeText(
                         context,

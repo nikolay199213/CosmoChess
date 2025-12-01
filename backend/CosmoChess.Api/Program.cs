@@ -24,6 +24,24 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<RegisterUserHandler>());
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowWebAndMobile", policy =>
+    {
+        policy.WithOrigins(
+            "http://localhost:8080",           // Vite dev server
+            "http://127.0.0.1:8080",
+            "http://10.0.2.2:8080",            // Android emulator WebView
+            "http://192.168.31.162:8080"       // Local network
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
+    });
+});
+
 builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = true; // Для отладки
@@ -93,6 +111,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+// Enable CORS
+app.UseCors("AllowWebAndMobile");
 
 app.UseAuthentication();
 app.UseAuthorization();
