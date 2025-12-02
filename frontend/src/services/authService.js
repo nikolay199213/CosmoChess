@@ -6,6 +6,7 @@ class AuthService {
   constructor() {
     this.token = localStorage.getItem('authToken')
     this.userId = localStorage.getItem('userId')
+    this.router = null // Will be set by router/index.js
 
     // Make authentication state reactive
     this.isLoggedIn = ref(!!this.token)
@@ -32,12 +33,23 @@ class AuthService {
         if (error.response?.status === 401) {
           console.log('401 Unauthorized - logging out')
           this.logout()
-          // Don't automatically redirect, let Vue router handle it
-          // window.location.href = '/login'
+
+          // Redirect to login page
+          if (this.router) {
+            // Use Vue Router for SPA navigation
+            this.router.push('/login')
+          } else {
+            // Fallback to hard redirect if router not available
+            window.location.href = '/login'
+          }
         }
         return Promise.reject(error)
       }
     )
+  }
+
+  setRouter(router) {
+    this.router = router
   }
 
   async login(username, password) {
