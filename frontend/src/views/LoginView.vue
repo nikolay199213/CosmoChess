@@ -1,40 +1,40 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h2 class="login-title">{{ isLoginMode ? 'Login' : 'Register' }} to CosmoChess</h2>
-      
+      <h2 class="login-title">{{ isLoginMode ? $t('auth.login') : $t('auth.register') }} {{ $t('auth.toCosmochess') }}</h2>
+
       <form @submit.prevent="handleSubmit" class="login-form">
         <div class="form-group">
-          <label for="username">Username</label>
+          <label for="username">{{ $t('auth.username') }}</label>
           <input
             id="username"
             v-model="username"
             type="text"
-            placeholder="Enter your username"
+            :placeholder="$t('auth.username')"
             required
             :disabled="loading"
           />
         </div>
 
         <div class="form-group">
-          <label for="password">Password</label>
+          <label for="password">{{ $t('auth.password') }}</label>
           <input
             id="password"
             v-model="password"
             type="password"
-            placeholder="Enter your password"
+            :placeholder="$t('auth.pleaseEnterPassword')"
             required
             :disabled="loading"
           />
         </div>
 
         <div v-if="!isLoginMode" class="form-group">
-          <label for="confirmPassword">Confirm Password</label>
+          <label for="confirmPassword">{{ $t('auth.confirmPassword') }}</label>
           <input
             id="confirmPassword"
             v-model="confirmPassword"
             type="password"
-            placeholder="Confirm your password"
+            :placeholder="$t('auth.confirmPassword')"
             required
             :disabled="loading"
           />
@@ -49,12 +49,12 @@
           class="btn btn-primary login-btn"
           :disabled="loading || !isFormValid"
         >
-          {{ loading ? 'Processing...' : (isLoginMode ? 'Login' : 'Register') }}
+          {{ loading ? $t('auth.processing') : (isLoginMode ? $t('auth.login') : $t('auth.register')) }}
         </button>
       </form>
 
       <div class="divider">
-        <span>OR</span>
+        <span>{{ $t('auth.or') }}</span>
       </div>
 
       <div class="google-signin-container">
@@ -75,13 +75,13 @@
 
       <div class="login-footer">
         <p>
-          {{ isLoginMode ? "Don't have an account?" : "Already have an account?" }}
-          <button 
-            @click="toggleMode" 
+          {{ isLoginMode ? $t('auth.dontHaveAccount') : $t('auth.alreadyHaveAccount') }}
+          <button
+            @click="toggleMode"
             class="toggle-btn"
             :disabled="loading"
           >
-            {{ isLoginMode ? 'Register' : 'Login' }}
+            {{ isLoginMode ? $t('auth.register') : $t('auth.login') }}
           </button>
         </p>
       </div>
@@ -135,7 +135,7 @@ export default {
           result = await authService.login(this.username, this.password)
         } else {
           if (this.password !== this.confirmPassword) {
-            this.error = 'Passwords do not match'
+            this.error = this.$t('auth.passwordsDoNotMatch')
             return
           }
           result = await authService.register(this.username, this.password)
@@ -150,7 +150,7 @@ export default {
           this.error = result.error
         }
       } catch (error) {
-        this.error = 'An unexpected error occurred'
+        this.error = this.$t('auth.unexpectedError')
         console.error('Authentication error:', error)
       } finally {
         this.loading = false
@@ -179,7 +179,7 @@ export default {
           this.error = result.error
         }
       } catch (error) {
-        this.error = 'Google authentication failed'
+        this.error = this.$t('auth.googleAuthFailed')
         console.error('Google auth error:', error)
       } finally {
         this.loading = false

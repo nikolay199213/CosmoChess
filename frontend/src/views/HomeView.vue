@@ -1,45 +1,45 @@
 <template>
   <div class="home-container">
     <div class="home-header">
-      <h1>CosmoChess</h1>
+      <h1>{{ $t('home.title') }}</h1>
     </div>
 
     <div class="actions-section">
       <div class="action-card">
-        <h2>Create New Game</h2>
-        <p>Start a new game and wait for an opponent</p>
+        <h2>{{ $t('home.createNewGame') }}</h2>
+        <p>{{ $t('home.createNewGameDesc') }}</p>
         <div class="action-controls">
           <select v-model="selectedTimeControl" class="time-control-select">
-            <option value="0">No time control</option>
-            <option value="1">Bullet 1+0</option>
-            <option value="2">Bullet 1+1</option>
-            <option value="3">Blitz 3+0</option>
-            <option value="4">Blitz 3+2</option>
-            <option value="5">Blitz 5+0</option>
-            <option value="6">Rapid 10+0</option>
-            <option value="7">Rapid 10+5</option>
-            <option value="8">Rapid 15+10</option>
-            <option value="9">Daily</option>
+            <option value="0">{{ $t('timeControl.noTimeControl') }}</option>
+            <option value="1">{{ $t('timeControl.bullet1') }}</option>
+            <option value="2">{{ $t('timeControl.bullet1_1') }}</option>
+            <option value="3">{{ $t('timeControl.blitz3') }}</option>
+            <option value="4">{{ $t('timeControl.blitz3_2') }}</option>
+            <option value="5">{{ $t('timeControl.blitz5') }}</option>
+            <option value="6">{{ $t('timeControl.rapid10') }}</option>
+            <option value="7">{{ $t('timeControl.rapid10_5') }}</option>
+            <option value="8">{{ $t('timeControl.rapid15_10') }}</option>
+            <option value="9">{{ $t('timeControl.daily') }}</option>
           </select>
           <button @click="createGame" class="btn btn-success" :disabled="creatingGame">
-            {{ creatingGame ? 'Creating...' : 'Create Game' }}
+            {{ creatingGame ? $t('home.creating') : $t('home.createGame') }}
           </button>
         </div>
       </div>
 
       <div class="action-card">
-        <h2>Play vs Bot</h2>
-        <p>Practice against computer opponents of varying difficulty</p>
+        <h2>{{ $t('home.playVsBot') }}</h2>
+        <p>{{ $t('home.playVsBotDesc') }}</p>
         <button @click="goToPlayBot" class="btn btn-primary">
-          Play Bot
+          {{ $t('home.playBot') }}
         </button>
       </div>
 
       <div class="action-card">
-        <h2>Available Games</h2>
-        <p>Browse and join games waiting for players</p>
+        <h2>{{ $t('home.availableGames') }}</h2>
+        <p>{{ $t('home.availableGamesDesc') }}</p>
         <button @click="goToGames" class="btn btn-primary">
-          Browse Games
+          {{ $t('home.browseGames') }}
         </button>
       </div>
     </div>
@@ -49,13 +49,13 @@
     </div>
 
     <div class="history-section">
-      <h2>Game History</h2>
+      <h2>{{ $t('home.gameHistory') }}</h2>
       <div v-if="loadingHistory" class="loading">
-        Loading game history...
+        {{ $t('home.loadingGameHistory') }}
       </div>
 
       <div v-else-if="gameHistory.length === 0" class="no-games">
-        No games played yet. Create or join a game to start playing!
+        {{ $t('home.noGamesYet') }}
       </div>
 
       <div v-else class="games-list">
@@ -72,15 +72,15 @@
             </div>
             <p class="game-date">{{ formatDate(game.startedAt) }}</p>
             <p class="game-players">
-              <span :class="{ 'you': game.whitePlayerId === userId }">White</span>
+              <span :class="{ 'you': game.whitePlayerId === userId }">{{ $t('game.white') }}</span>
               vs
-              <span :class="{ 'you': game.blackPlayerId === userId }">Black</span>
+              <span :class="{ 'you': game.blackPlayerId === userId }">{{ $t('game.black') }}</span>
             </p>
             <p class="game-time-control">{{ getTimeControlName(game.timeControl) }}</p>
           </div>
           <div class="game-actions">
             <button class="btn btn-secondary btn-sm">
-              Analyze
+              {{ $t('home.analyze') }}
             </button>
           </div>
         </div>
@@ -163,12 +163,12 @@ export default {
     getGameResult(game) {
       const isWhite = game.whitePlayerId === this.userId
       switch (game.gameResult) {
-        case 0: return 'Waiting'
-        case 1: return 'In Progress'
-        case 2: return isWhite ? 'Victory' : 'Defeat'
-        case 3: return isWhite ? 'Defeat' : 'Victory'
-        case 4: return 'Draw'
-        default: return 'Unknown'
+        case 0: return this.$t('gameStatus.waiting')
+        case 1: return this.$t('gameStatus.inProgress')
+        case 2: return isWhite ? this.$t('gameStatus.victory') : this.$t('gameStatus.defeat')
+        case 3: return isWhite ? this.$t('gameStatus.defeat') : this.$t('gameStatus.victory')
+        case 4: return this.$t('gameStatus.draw')
+        default: return this.$t('gameStatus.unknown')
       }
     },
 
@@ -186,18 +186,18 @@ export default {
 
     getTimeControlName(timeControl) {
       const names = {
-        0: 'No time control',
-        1: 'Bullet 1+0',
-        2: 'Bullet 1+1',
-        3: 'Blitz 3+0',
-        4: 'Blitz 3+2',
-        5: 'Blitz 5+0',
-        6: 'Rapid 10+0',
-        7: 'Rapid 10+5',
-        8: 'Rapid 15+10',
-        9: 'Daily'
+        0: this.$t('timeControl.noTimeControl'),
+        1: this.$t('timeControl.bullet1'),
+        2: this.$t('timeControl.bullet1_1'),
+        3: this.$t('timeControl.blitz3'),
+        4: this.$t('timeControl.blitz3_2'),
+        5: this.$t('timeControl.blitz5'),
+        6: this.$t('timeControl.rapid10'),
+        7: this.$t('timeControl.rapid10_5'),
+        8: this.$t('timeControl.rapid15_10'),
+        9: this.$t('timeControl.daily')
       }
-      return names[timeControl] || 'Unknown'
+      return names[timeControl] || this.$t('gameStatus.unknown')
     },
 
     formatDate(dateString) {

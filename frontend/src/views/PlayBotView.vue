@@ -1,13 +1,13 @@
 <template>
   <div class="play-bot-container">
     <div class="play-bot-header">
-      <h1>Play vs Bot</h1>
-      <p>Choose difficulty and time control to start a game against the computer</p>
+      <h1>{{ $t('playBot.title') }}</h1>
+      <p>{{ $t('playBot.subtitle') }}</p>
     </div>
 
     <div class="settings-section">
       <div class="setting-card">
-        <h2>Difficulty</h2>
+        <h2>{{ $t('playBot.difficulty') }}</h2>
         <div class="difficulty-options">
           <button
             v-for="diff in difficulties"
@@ -15,14 +15,14 @@
             :class="['difficulty-btn', { active: selectedDifficulty === diff.value }]"
             @click="selectedDifficulty = diff.value"
           >
-            <span class="diff-name">{{ diff.name }}</span>
-            <span class="diff-rating">~{{ diff.rating }}</span>
+            <span class="diff-name">{{ $t(diff.nameKey) }}</span>
+            <span class="diff-rating">{{ $t(diff.ratingKey) }}</span>
           </button>
         </div>
       </div>
 
       <div class="setting-card">
-        <h2>Playing Style</h2>
+        <h2>{{ $t('playBot.playingStyle') }}</h2>
         <div class="style-options">
           <button
             v-for="style in styles"
@@ -31,34 +31,34 @@
             @click="selectedStyle = style.value"
           >
             <span class="style-icon">{{ style.icon }}</span>
-            <span class="style-name">{{ style.name }}</span>
-            <span class="style-desc">{{ style.description }}</span>
+            <span class="style-name">{{ $t(style.nameKey) }}</span>
+            <span class="style-desc">{{ $t(style.descKey) }}</span>
           </button>
         </div>
       </div>
 
       <div class="setting-card">
-        <h2>Time Control</h2>
+        <h2>{{ $t('playBot.timeControl') }}</h2>
         <select v-model="selectedTimeControl" class="time-control-select">
-          <option value="0">No time control</option>
-          <option value="1">Bullet 1+0</option>
-          <option value="2">Bullet 1+1</option>
-          <option value="3">Blitz 3+0</option>
-          <option value="4">Blitz 3+2</option>
-          <option value="5">Blitz 5+0</option>
-          <option value="6">Rapid 10+0</option>
-          <option value="7">Rapid 10+5</option>
-          <option value="8">Rapid 15+10</option>
+          <option value="0">{{ $t('timeControl.noTimeControl') }}</option>
+          <option value="1">{{ $t('timeControl.bullet1') }}</option>
+          <option value="2">{{ $t('timeControl.bullet1_1') }}</option>
+          <option value="3">{{ $t('timeControl.blitz3') }}</option>
+          <option value="4">{{ $t('timeControl.blitz3_2') }}</option>
+          <option value="5">{{ $t('timeControl.blitz5') }}</option>
+          <option value="6">{{ $t('timeControl.rapid10') }}</option>
+          <option value="7">{{ $t('timeControl.rapid10_5') }}</option>
+          <option value="8">{{ $t('timeControl.rapid15_10') }}</option>
         </select>
       </div>
     </div>
 
     <div class="action-section">
       <button @click="startGame" class="btn btn-success btn-large" :disabled="creatingGame">
-        {{ creatingGame ? 'Starting...' : 'Start Game' }}
+        {{ creatingGame ? $t('playBot.starting') : $t('playBot.startGame') }}
       </button>
       <button @click="goBack" class="btn btn-secondary">
-        Back to Home
+        {{ $t('playBot.backToHome') }}
       </button>
     </div>
 
@@ -81,17 +81,17 @@ export default {
       creatingGame: false,
       error: '',
       difficulties: [
-        { value: 1, name: 'Beginner', rating: '400-600' },
-        { value: 2, name: 'Easy', rating: '800-1000' },
-        { value: 3, name: 'Medium', rating: '1200-1400' },
-        { value: 4, name: 'Hard', rating: '1600-1800' },
-        { value: 5, name: 'Expert', rating: '2000-2200' },
-        { value: 6, name: 'Master', rating: '2400+' }
+        { value: 1, nameKey: 'playBot.beginner', ratingKey: 'playBot.beginnerRating' },
+        { value: 2, nameKey: 'playBot.easy', ratingKey: 'playBot.easyRating' },
+        { value: 3, nameKey: 'playBot.medium', ratingKey: 'playBot.mediumRating' },
+        { value: 4, nameKey: 'playBot.hard', ratingKey: 'playBot.hardRating' },
+        { value: 5, nameKey: 'playBot.expert', ratingKey: 'playBot.expertRating' },
+        { value: 6, nameKey: 'playBot.master', ratingKey: 'playBot.masterRating' }
       ],
       styles: [
-        { value: 0, name: 'Balanced', icon: '⚖️', description: 'Well-rounded play' },
-        { value: 1, name: 'Aggressive', icon: '⚔️', description: 'Attacks and tactics' },
-        { value: 2, name: 'Solid', icon: '🛡️', description: 'Positional and defensive' }
+        { value: 0, nameKey: 'playBot.balanced', icon: '⚖️', descKey: 'playBot.balancedDesc' },
+        { value: 1, nameKey: 'playBot.aggressive', icon: '⚔️', descKey: 'playBot.aggressiveDesc' },
+        { value: 2, nameKey: 'playBot.solid', icon: '🛡️', descKey: 'playBot.solidDesc' }
       ]
     }
   },
@@ -113,7 +113,7 @@ export default {
           this.error = result.error
         }
       } catch (error) {
-        this.error = 'Failed to create game'
+        this.error = this.$t('playBot.failedToCreateGame')
         console.error('Error creating bot game:', error)
       } finally {
         this.creatingGame = false

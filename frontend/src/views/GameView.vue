@@ -3,7 +3,7 @@
     <div class="game-header">
       <div class="game-info">
         <span class="connection-status" :class="connectionStatusClass">
-          {{ connectionStatus }}
+          {{ translatedConnectionStatus }}
         </span>
         <span class="game-status">{{ gameStatus }}</span>
         <button
@@ -12,7 +12,7 @@
           class="btn"
           :class="analysisMode ? 'btn-active' : 'btn-secondary'"
         >
-          {{ analysisMode ? 'Exit Analysis' : 'Analyze' }}
+          {{ analysisMode ? $t('game.exitAnalysis') : $t('game.analyze') }}
         </button>
       </div>
     </div>
@@ -23,7 +23,7 @@
         <span class="game-over-icon">{{ gameOverIcon }}</span>
         <span class="game-over-text">{{ gameOverMessage }}</span>
         <button @click="toggleAnalysisMode" class="btn btn-primary btn-small">
-          Analyze Game
+          {{ $t('game.analyzeGame') }}
         </button>
       </div>
     </div>
@@ -96,16 +96,16 @@
 
       <div class="game-sidebar">
         <div v-if="!analysisMode" class="game-details">
-          <h3>Game Info</h3>
-          <p><strong>ID:</strong> {{ gameId.substring(0, 8) }}</p>
-          <p><strong>Turn:</strong> {{ chess.turn() === 'w' ? 'White' : 'Black' }}</p>
+          <h3>{{ $t('game.gameInfo') }}</h3>
+          <p><strong>{{ $t('game.id') }}</strong> {{ gameId.substring(0, 8) }}</p>
+          <p><strong>{{ $t('game.turn') }}</strong> {{ chess.turn() === 'w' ? $t('game.white') : $t('game.black') }}</p>
         </div>
 
         <!-- Top 3 moves (analysis mode) -->
         <div v-if="analysisMode" class="top-moves">
-          <h3>Best Moves</h3>
+          <h3>{{ $t('game.bestMoves') }}</h3>
           <div v-if="analyzing" class="analyzing-indicator">
-            Analyzing...
+            {{ $t('game.analyzing') }}
           </div>
           <div v-else-if="topMoves.length > 0" class="moves-suggestions">
             <div
@@ -123,12 +123,12 @@
             </div>
           </div>
           <div v-else class="no-analysis">
-            Navigate to a position to see analysis
+            {{ $t('game.navigateToSeeAnalysis') }}
           </div>
         </div>
 
         <div class="move-history">
-          <h3>Move History</h3>
+          <h3>{{ $t('game.moveHistory') }}</h3>
           <div class="moves-list">
             <div
               v-for="(move, index) in moveHistory"
@@ -179,13 +179,13 @@
         </div>
 
         <div v-if="isInVariation" class="variation-indicator">
-          <span>In variation</span>
-          <button @click="exitVariation" class="btn btn-small">Exit to game</button>
+          <span>{{ $t('game.inVariation') }}</span>
+          <button @click="exitVariation" class="btn btn-small">{{ $t('game.exitToGame') }}</button>
         </div>
 
         <div class="game-controls">
           <button @click="goBackToGames" class="btn btn-secondary">
-            Back to Games
+            {{ $t('game.backToGames') }}
           </button>
         </div>
       </div>
@@ -229,7 +229,7 @@ export default {
       moveHistory: [],
       loading: true,
       currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      connectionStatus: 'Disconnected',
+      connectionStatus: '',
       whiteTimeRemaining: 0,
       blackTimeRemaining: 0,
       timerInterval: null,
@@ -315,24 +315,24 @@ export default {
       // Extract current turn from FEN for reactivity
       const fenParts = this.currentFen.split(' ')
       const currentTurn = fenParts[1] || 'w'
-      const currentColor = currentTurn === 'w' ? 'White' : 'Black'
-      const oppositeColor = currentTurn === 'w' ? 'Black' : 'White'
+      const currentColor = currentTurn === 'w' ? this.$t('game.white') : this.$t('game.black')
+      const oppositeColor = currentTurn === 'w' ? this.$t('game.black') : this.$t('game.white')
 
       if (this.chess.isGameOver()) {
         if (this.chess.isCheckmate()) {
-          return `Checkmate! ${oppositeColor} wins!`
+          return this.$t('game.checkmate', { color: oppositeColor })
         } else if (this.chess.isDraw()) {
-          return 'Draw!'
+          return this.$t('game.draw')
         }
       } else if (this.chess.inCheck()) {
-        return `${currentColor} is in check`
+        return this.$t('game.inCheck', { color: currentColor })
       }
 
       if (this.analysisMode) {
-        return `Analysis Mode - Move ${this.currentMoveIndex}/${this.moveHistory.length}`
+        return this.$t('game.analysisMode', { current: this.currentMoveIndex, total: this.moveHistory.length })
       }
 
-      return `${currentColor} to move`
+      return this.$t('game.toMove', { color: currentColor })
     },
 
     currentPlayer() {
@@ -362,6 +362,16 @@ export default {
       return (isWhite && currentTurn === 'w') || (!isWhite && currentTurn === 'b')
     },
 
+    translatedConnectionStatus() {
+      const statusMap = {
+        'Connected': this.$t('game.connected'),
+        'Disconnected': this.$t('game.disconnected'),
+        'Connecting': this.$t('game.connecting'),
+        'Reconnecting': this.$t('game.reconnecting')
+      }
+      return statusMap[this.connectionStatus] || this.connectionStatus
+    },
+
     connectionStatusClass() {
       return {
         'status-connected': this.connectionStatus === 'Connected',
@@ -382,18 +392,18 @@ export default {
       // Check if black player is a bot (special GUID)
       const botPlayerId = '00000000-0000-0000-0000-000000000001'
       if (this.game?.blackPlayerId === botPlayerId) {
-        return 'Bot'
+        return this.$t('game.bot')
       }
-      return this.game?.blackPlayerUsername || 'Waiting...'
+      return this.game?.blackPlayerUsername || this.$t('game.waiting')
     },
 
     whitePlayerLabel() {
       // Check if white player is a bot (special GUID)
       const botPlayerId = '00000000-0000-0000-0000-000000000001'
       if (this.game?.whitePlayerId === botPlayerId) {
-        return 'Bot'
+        return this.$t('game.bot')
       }
-      return this.game?.whitePlayerUsername || 'White'
+      return this.game?.whitePlayerUsername || this.$t('game.white')
     },
 
     // Game over detection
@@ -404,27 +414,27 @@ export default {
 
     gameOverMessage() {
       if (this.chess.isCheckmate()) {
-        return this.chess.turn() === 'w' ? 'Black wins by checkmate!' : 'White wins by checkmate!'
+        return this.chess.turn() === 'w' ? this.$t('game.blackWinsByCheckmate') : this.$t('game.blackWinsByCheckmate')
       }
       if (this.chess.isStalemate()) {
-        return 'Draw by stalemate'
+        return this.$t('game.drawByStalemate')
       }
       if (this.chess.isThreefoldRepetition()) {
-        return 'Draw by threefold repetition'
+        return this.$t('game.drawByRepetition')
       }
       if (this.chess.isInsufficientMaterial()) {
-        return 'Draw by insufficient material'
+        return this.$t('game.drawByInsufficientMaterial')
       }
       if (this.chess.isDraw()) {
-        return 'Draw'
+        return this.$t('game.draw')
       }
 
       // From backend game result
       switch (this.gameResult) {
-        case 2: return 'White wins!'
-        case 3: return 'Black wins!'
-        case 4: return 'Draw!'
-        default: return 'Game Over'
+        case 2: return this.$t('game.whiteWins')
+        case 3: return this.$t('game.blackWins')
+        case 4: return this.$t('game.draw')
+        default: return this.$t('game.gameOver')
       }
     },
 
@@ -540,7 +550,7 @@ export default {
 
         this.loading = false
       } catch (error) {
-        this.error = 'Failed to initialize game'
+        this.error = this.$t('game.failedToInitializeGame')
         console.error('Game initialization error:', error)
 
         this.chess.reset()
@@ -567,7 +577,7 @@ export default {
         console.log('Real-time connection established')
       } catch (error) {
         console.error('Failed to setup real-time connection:', error)
-        this.error = 'Failed to connect to game server. Moves may not sync in real-time.'
+        this.error = this.$t('game.failedToConnectToServer')
       }
     },
 
@@ -627,7 +637,7 @@ export default {
         this.currentFen = this.chess.fen()
       } catch (error) {
         console.error('Error applying received move:', error)
-        this.error = 'Failed to apply opponent\'s move'
+        this.error = this.$t('game.failedToApplyMove')
       }
     },
 
@@ -664,7 +674,7 @@ export default {
 
       // Don't allow moves if it's not the player's turn (safety check)
       if (!this.analysisMode && !this.isPlayerTurn) {
-        this.error = 'It\'s not your turn'
+        this.error = this.$t('game.notYourTurn')
         return
       }
 
@@ -676,7 +686,7 @@ export default {
         })
 
         if (chessMove === null) {
-          this.error = 'Invalid move'
+          this.error = this.$t('game.invalidMove')
           return
         }
 
@@ -731,11 +741,11 @@ export default {
           }
         }).catch(error => {
           console.error('Backend error:', error)
-          this.error = 'Failed to make move'
+          this.error = this.$t('game.failedToMakeMove')
         })
       } catch (error) {
         console.error('Move error:', error)
-        this.error = 'Failed to make move'
+        this.error = this.$t('game.failedToMakeMove')
       }
     },
 

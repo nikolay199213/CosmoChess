@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CosmoChess</string>
+    <string name="login">Вход</string>
+    <string name="register">Регистрация</string>
+    <string name="username">Имя пользователя</string>
+    <string name="email">Электронная почта</string>
+    <string name="password">Пароль</string>
+    <string name="dont_have_account">Нет аккаунта?</string>
+    <string name="already_have_account">Уже есть аккаунт?</string>
+    <string name="logout">Выход</string>
+
+    <!-- Games -->
+    <string name="new_game">Новая игра</string>
+    <string name="play_vs_bot">Играть с ботом</string>
+    <string name="play_online">Играть онлайн</string>
+    <string name="join_game">Присоединиться</string>
+    <string name="waiting_games">Ожидающие игры</string>
+    <string name="no_games_available">Нет доступных игр</string>
+    <string name="create_new_game">Создать новую игру</string>
+
+    <!-- Bot Game -->
+    <string name="select_difficulty">Выберите сложность</string>
+    <string name="select_style">Выберите стиль игры</string>
+    <string name="start_game">Начать игру</string>
+
+    <!-- Chess Board -->
+    <string name="white_turn">Ход белых</string>
+    <string name="black_turn">Ход чёрных</string>
+    <string name="checkmate">Шах и мат!</string>
+    <string name="stalemate">Пат!</string>
+    <string name="draw">Ничья!</string>
+    <string name="waiting_for_opponent">Ожидание соперника...</string>
+
+    <!-- Errors -->
+    <string name="error_login">Ошибка входа. Проверьте учётные данные.</string>
+    <string name="error_register">Ошибка регистрации. Попробуйте ещё раз.</string>
+    <string name="error_network">Ошибка сети. Проверьте подключение.</string>
+    <string name="error_create_game">Не удалось создать игру.</string>
+    <string name="error_join_game">Не удалось присоединиться к игре.</string>
+    <string name="error_make_move">Не удалось сделать ход.</string>
+</resources>

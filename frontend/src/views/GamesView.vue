@@ -1,22 +1,22 @@
 <template>
   <div class="games-container">
     <div class="games-header">
-      <h1>Chess Games</h1>
+      <h1>{{ $t('games.title') }}</h1>
       <div class="header-controls">
         <select v-model="selectedTimeControl" class="time-control-select">
-          <option value="0">No time control</option>
-          <option value="1">Bullet 1+0</option>
-          <option value="2">Bullet 1+1</option>
-          <option value="3">Blitz 3+0</option>
-          <option value="4">Blitz 3+2</option>
-          <option value="5">Blitz 5+0</option>
-          <option value="6">Rapid 10+0</option>
-          <option value="7">Rapid 10+5</option>
-          <option value="8">Rapid 15+10</option>
-          <option value="9">Daily</option>
+          <option value="0">{{ $t('timeControl.noTimeControl') }}</option>
+          <option value="1">{{ $t('timeControl.bullet1') }}</option>
+          <option value="2">{{ $t('timeControl.bullet1_1') }}</option>
+          <option value="3">{{ $t('timeControl.blitz3') }}</option>
+          <option value="4">{{ $t('timeControl.blitz3_2') }}</option>
+          <option value="5">{{ $t('timeControl.blitz5') }}</option>
+          <option value="6">{{ $t('timeControl.rapid10') }}</option>
+          <option value="7">{{ $t('timeControl.rapid10_5') }}</option>
+          <option value="8">{{ $t('timeControl.rapid15_10') }}</option>
+          <option value="9">{{ $t('timeControl.daily') }}</option>
         </select>
         <button @click="createGame" class="btn btn-success" :disabled="loading">
-          {{ loading ? 'Creating...' : 'Create New Game' }}
+          {{ loading ? $t('games.creating') : $t('games.createNewGame') }}
         </button>
       </div>
     </div>
@@ -27,34 +27,34 @@
 
     <div class="games-grid">
       <div class="games-section">
-        <h2>Available Games</h2>
+        <h2>{{ $t('games.availableGames') }}</h2>
         <div v-if="loadingGames" class="loading">
-          Loading games...
+          {{ $t('games.loadingGames') }}
         </div>
-        
+
         <div v-else-if="availableGames.length === 0" class="no-games">
-          No games available. Create a new game to start playing!
+          {{ $t('games.noGamesAvailable') }}
         </div>
-        
+
         <div v-else class="games-list">
-          <div 
-            v-for="game in availableGames" 
+          <div
+            v-for="game in availableGames"
             :key="game.id"
             class="game-card"
           >
             <div class="game-info">
               <h3>Game #{{ game.id.substring(0, 8) }}</h3>
-              <p>Created by: Player</p>
-              <p>Status: {{ getGameStatus(game) }}</p>
+              <p>{{ $t('games.createdBy') }}</p>
+              <p>{{ $t('games.status', { status: getGameStatus(game) }) }}</p>
               <p>FEN: {{ game.currentFen.substring(0, 30) }}...</p>
             </div>
             <div class="game-actions">
-              <button 
+              <button
                 @click="joinGame(game.id)"
                 class="btn btn-primary"
                 :disabled="joiningGame === game.id"
               >
-                {{ joiningGame === game.id ? 'Joining...' : 'Join Game' }}
+                {{ joiningGame === game.id ? $t('games.joining') : $t('games.joinGame') }}
               </button>
             </div>
           </div>
@@ -62,29 +62,29 @@
       </div>
 
       <div class="games-section">
-        <h2>Your Games</h2>
+        <h2>{{ $t('games.yourGames') }}</h2>
         <div v-if="userGames.length === 0" class="no-games">
-          You haven't created any games yet.
+          {{ $t('games.noGamesCreated') }}
         </div>
-        
+
         <div v-else class="games-list">
-          <div 
-            v-for="game in userGames" 
+          <div
+            v-for="game in userGames"
             :key="game.id"
             class="game-card"
           >
             <div class="game-info">
               <h3>Game #{{ game.id.substring(0, 8) }}</h3>
-              <p>Status: {{ getGameStatus(game) }}</p>
+              <p>{{ $t('games.status', { status: getGameStatus(game) }) }}</p>
               <p>Players: {{ getPlayerCount(game) }}/2</p>
             </div>
             <div class="game-actions">
-              <button 
+              <button
                 @click="playGame(game.id)"
                 class="btn btn-primary"
                 :disabled="!canPlayGame(game)"
               >
-                {{ canPlayGame(game) ? 'Play' : 'Waiting for player' }}
+                {{ canPlayGame(game) ? $t('games.play') : $t('games.waitingForPlayer') }}
               </button>
             </div>
           </div>
@@ -182,7 +182,7 @@ export default {
           this.error = result.error
         }
       } catch (error) {
-        this.error = 'Failed to load games'
+        this.error = this.$t('games.failedToLoadGames')
         console.error('Error loading games:', error)
       } finally {
         this.loadingGames = false
@@ -210,7 +210,7 @@ export default {
         }
       } catch (error) {
         console.error('Exception in createGame:', error)
-        this.error = 'Failed to create game'
+        this.error = this.$t('games.failedToCreateGame')
         console.error('Error creating game:', error)
       } finally {
         this.loading = false
@@ -231,7 +231,7 @@ export default {
           this.error = result.error
         }
       } catch (error) {
-        this.error = 'Failed to join game'
+        this.error = this.$t('games.failedToJoinGame')
         console.error('Error joining game:', error)
       } finally {
         this.joiningGame = null
@@ -244,12 +244,12 @@ export default {
 
     getGameStatus(game) {
       switch (game.gameResult) {
-        case 0: return 'Waiting for player'
-        case 1: return 'In progress'
-        case 2: return 'White wins'
-        case 3: return 'Black wins'
-        case 4: return 'Draw'
-        default: return 'Unknown'
+        case 0: return this.$t('gameStatus.waitingForPlayer')
+        case 1: return this.$t('gameStatus.inProgress')
+        case 2: return this.$t('gameStatus.whiteWins')
+        case 3: return this.$t('gameStatus.blackWins')
+        case 4: return this.$t('gameStatus.draw')
+        default: return this.$t('gameStatus.unknown')
       }
     },
 
