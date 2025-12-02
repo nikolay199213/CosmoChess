@@ -49,6 +49,9 @@ const router = createRouter({
   routes
 })
 
+// Provide router to authService for automatic redirects on 401 errors
+authService.setRouter(router)
+
 // Navigation guards
 router.beforeEach((to, from, next) => {
   const isAuthenticated = authService.isAuthenticated()

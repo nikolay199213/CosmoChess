@@ -58,19 +58,7 @@
       </div>
 
       <div class="google-signin-container">
-        <div id="g_id_onload"
-             data-client_id="563541620211-329n2i2revk9j8rbfddti2pv0hkf6300.apps.googleusercontent.com"
-             data-callback="handleGoogleCallback">
-        </div>
-        <div class="g_id_signin"
-             data-type="standard"
-             data-size="large"
-             data-theme="filled_black"
-             data-text="signin_with"
-             data-shape="rectangular"
-             data-logo_alignment="left"
-             data-width="360">
-        </div>
+        <div class="g_id_signin"></div>
       </div>
 
       <div class="login-footer">
@@ -119,12 +107,57 @@ export default {
 
     // Setup Google Sign-In callback
     window.handleGoogleCallback = this.handleGoogleCallback
+
+    // Initialize Google Sign-In when API is loaded
+    this.initializeGoogleSignIn()
   },
   beforeUnmount() {
     // Cleanup
     delete window.handleGoogleCallback
   },
   methods: {
+    initializeGoogleSignIn() {
+      // Wait for Google API to load
+      const initGoogle = () => {
+        if (typeof window.google !== 'undefined' && window.google.accounts) {
+          try {
+            // Initialize Google Sign-In
+            window.google.accounts.id.initialize({
+              client_id: '563541620211-329n2i2revk9j8rbfddti2pv0hkf6300.apps.googleusercontent.com',
+              callback: this.handleGoogleCallback
+            })
+
+            // Render the button
+            const buttonContainer = document.querySelector('.g_id_signin')
+            if (buttonContainer) {
+              window.google.accounts.id.renderButton(
+                buttonContainer,
+                {
+                  type: 'standard',
+                  size: 'large',
+                  theme: 'filled_black',
+                  text: 'signin_with',
+                  shape: 'rectangular',
+                  logo_alignment: 'left',
+                  width: 360
+                }
+              )
+            }
+
+            // Also show One Tap prompt
+            window.google.accounts.id.prompt()
+          } catch (error) {
+            console.error('Error initializing Google Sign-In:', error)
+          }
+        } else {
+          // Retry after a short delay if API not loaded yet
+          setTimeout(initGoogle, 100)
+        }
+      }
+
+      initGoogle()
+    },
+
     async handleSubmit() {
       this.error = ''
       this.loading = true
