@@ -60,7 +60,8 @@ jobs:
             fi
             
             echo "===> Logging in to GHCR"
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker logout ghcr.io || true
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
             
             echo "===> Pulling latest images"
             docker compose -f docker-compose.prod.yml pull
