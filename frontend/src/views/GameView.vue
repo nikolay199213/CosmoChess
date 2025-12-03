@@ -104,8 +104,13 @@
         <!-- Top 3 moves (analysis mode) -->
         <div v-if="analysisMode" class="top-moves">
           <h3>{{ $t('game.bestMoves') }}</h3>
-          <div v-if="analyzing" class="analyzing-indicator">
-            {{ $t('game.analyzing') }}
+          <div v-if="analyzing" class="moves-suggestions">
+            <!-- Skeleton loader for 3 moves -->
+            <div v-for="i in 3" :key="`skeleton-${i}`" class="suggestion-item skeleton-item">
+              <span class="skeleton skeleton-rank"></span>
+              <span class="skeleton skeleton-move"></span>
+              <span class="skeleton skeleton-eval"></span>
+            </div>
           </div>
           <div v-else-if="topMoves.length > 0" class="moves-suggestions">
             <div
@@ -1303,9 +1308,54 @@ export default {
   padding: 0.5rem;
 }
 
+/* Skeleton loader styles */
+.skeleton-item {
+  pointer-events: none;
+  cursor: default;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(197, 212, 255, 0.1) 25%,
+    rgba(197, 212, 255, 0.2) 50%,
+    rgba(197, 212, 255, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-rank {
+  width: 20px;
+  height: 14px;
+  margin-right: 0.5rem;
+}
+
+.skeleton-move {
+  flex: 1;
+  height: 14px;
+  max-width: 60px;
+}
+
+.skeleton-eval {
+  width: 40px;
+  height: 14px;
+}
+
 /* Move history styles */
 .moves-list {
-  max-height: 200px;
+  max-height: 50vh;
   overflow-y: auto;
   border: 1px solid rgba(197, 212, 255, 0.1);
   border-radius: 8px;
