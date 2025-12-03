@@ -147,8 +147,8 @@
           </div>
         </div>
 
-        <!-- Navigation buttons (analysis mode) -->
-        <div v-if="analysisMode" class="navigation-controls">
+        <!-- Navigation buttons -->
+        <div v-if="moveHistory.length > 0" class="navigation-controls">
           <button
             @click="goToStart"
             class="nav-btn"
@@ -275,8 +275,8 @@ export default {
           }
           dests.get(move.from).push(move.to)
         })
-      } else if (this.isPlayerTurn) {
-        // Only allow moves if it's the current player's turn
+      } else if (this.isPlayerTurn && this.currentMoveIndex === this.moveHistory.length) {
+        // Only allow moves if it's the current player's turn AND at current position
         const moves = tempChess.moves({ verbose: true })
         moves.forEach(move => {
           if (!dests.has(move.from)) {
@@ -836,11 +836,11 @@ export default {
 
     // Navigation methods
     handleKeyPress(event) {
-      // Only handle arrow keys in analysis mode
-      if (!this.analysisMode) return
-
       // Ignore if user is typing in an input field
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
+
+      // Only handle if there are moves to navigate
+      if (this.moveHistory.length === 0) return
 
       switch (event.key) {
         case 'ArrowLeft':
