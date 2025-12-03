@@ -1247,6 +1247,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  min-height: 120px;
 }
 
 .suggestion-item {
@@ -1306,6 +1307,10 @@ export default {
   font-size: 0.85rem;
   text-align: center;
   padding: 0.5rem;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Skeleton loader styles */
