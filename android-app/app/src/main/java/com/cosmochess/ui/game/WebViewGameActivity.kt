@@ -160,10 +160,28 @@ class WebViewGameActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            super.onBackPressed()
+        // First, try to exit analysis mode if active
+        webView.evaluateJavascript(
+            """
+            (function() {
+                if (typeof window.exitAnalysisMode === 'function') {
+                    return window.exitAnalysisMode();
+                }
+                return false;
+            })();
+            """.trimIndent()
+        ) { result ->
+            // If analysis mode was exited (result is "true"), do nothing more
+            // Otherwise, proceed with default back navigation
+            if (result != "true") {
+                runOnUiThread {
+                    if (webView.canGoBack()) {
+                        webView.goBack()
+                    } else {
+                        super.onBackPressed()
+                    }
+                }
+            }
         }
     }
 

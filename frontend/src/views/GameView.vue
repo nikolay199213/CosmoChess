@@ -466,11 +466,17 @@ export default {
     await this.initializeGame()
     await this.setupRealtimeConnection()
     this.startTimer()
+    // Add keyboard navigation support
+    window.addEventListener('keydown', this.handleKeyPress)
+    // Expose functions for Android bridge
+    this.setupAndroidBridge()
   },
 
   async unmounted() {
     await this.cleanupRealtimeConnection()
     this.stopTimer()
+    // Remove keyboard navigation support
+    window.removeEventListener('keydown', this.handleKeyPress)
   },
 
   watch: {
@@ -824,6 +830,33 @@ export default {
     },
 
     // Navigation methods
+    handleKeyPress(event) {
+      // Only handle arrow keys in analysis mode
+      if (!this.analysisMode) return
+
+      // Ignore if user is typing in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault()
+          this.goBack()
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          this.goForward()
+          break
+        case 'Home':
+          event.preventDefault()
+          this.goToStart()
+          break
+        case 'End':
+          event.preventDefault()
+          this.goToEnd()
+          break
+      }
+    },
+
     goToStart() {
       if (this.isInVariation) {
         this.exitVariation()
@@ -915,6 +948,19 @@ export default {
       const pawns = line.score / 100
       const sign = pawns >= 0 ? '+' : ''
       return sign + pawns.toFixed(1)
+    },
+
+    // Android bridge methods
+    setupAndroidBridge() {
+      // Expose methods for Android WebView
+      window.isInAnalysisMode = () => this.analysisMode
+      window.exitAnalysisMode = () => {
+        if (this.analysisMode) {
+          this.toggleAnalysisMode()
+          return true
+        }
+        return false
+      }
     },
 
     getEvalClass(line) {
