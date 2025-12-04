@@ -104,8 +104,13 @@
         <!-- Top 3 moves (analysis mode) -->
         <div v-if="analysisMode" class="top-moves">
           <h3>{{ $t('game.bestMoves') }}</h3>
-          <div v-if="analyzing" class="analyzing-indicator">
-            {{ $t('game.analyzing') }}
+          <div v-if="analyzing" class="moves-suggestions">
+            <!-- Skeleton loader for 3 moves -->
+            <div v-for="i in 3" :key="`skeleton-${i}`" class="suggestion-item skeleton-item">
+              <span class="skeleton skeleton-rank"></span>
+              <span class="skeleton skeleton-move"></span>
+              <span class="skeleton skeleton-eval"></span>
+            </div>
           </div>
           <div v-else-if="topMoves.length > 0" class="moves-suggestions">
             <div
@@ -142,8 +147,8 @@
           </div>
         </div>
 
-        <!-- Navigation buttons (analysis mode) -->
-        <div v-if="analysisMode" class="navigation-controls">
+        <!-- Navigation buttons -->
+        <div v-if="moveHistory.length > 0" class="navigation-controls">
           <button
             @click="goToStart"
             class="nav-btn"
@@ -270,8 +275,8 @@ export default {
           }
           dests.get(move.from).push(move.to)
         })
-      } else if (this.isPlayerTurn) {
-        // Only allow moves if it's the current player's turn
+      } else if (this.isPlayerTurn && this.currentMoveIndex === this.moveHistory.length) {
+        // Only allow moves if it's the current player's turn AND at current position
         const moves = tempChess.moves({ verbose: true })
         moves.forEach(move => {
           if (!dests.has(move.from)) {
@@ -466,11 +471,17 @@ export default {
     await this.initializeGame()
     await this.setupRealtimeConnection()
     this.startTimer()
+    // Add keyboard navigation support
+    window.addEventListener('keydown', this.handleKeyPress)
+    // Expose functions for Android bridge
+    this.setupAndroidBridge()
   },
 
   async unmounted() {
     await this.cleanupRealtimeConnection()
     this.stopTimer()
+    // Remove keyboard navigation support
+    window.removeEventListener('keydown', this.handleKeyPress)
   },
 
   watch: {
@@ -824,6 +835,33 @@ export default {
     },
 
     // Navigation methods
+    handleKeyPress(event) {
+      // Ignore if user is typing in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
+
+      // Only handle if there are moves to navigate
+      if (this.moveHistory.length === 0) return
+
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault()
+          this.goBack()
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          this.goForward()
+          break
+        case 'Home':
+          event.preventDefault()
+          this.goToStart()
+          break
+        case 'End':
+          event.preventDefault()
+          this.goToEnd()
+          break
+      }
+    },
+
     goToStart() {
       if (this.isInVariation) {
         this.exitVariation()
@@ -915,6 +953,19 @@ export default {
       const pawns = line.score / 100
       const sign = pawns >= 0 ? '+' : ''
       return sign + pawns.toFixed(1)
+    },
+
+    // Android bridge methods
+    setupAndroidBridge() {
+      // Expose methods for Android WebView
+      window.isInAnalysisMode = () => this.analysisMode
+      window.exitAnalysisMode = () => {
+        if (this.analysisMode) {
+          this.toggleAnalysisMode()
+          return true
+        }
+        return false
+      }
     },
 
     getEvalClass(line) {
@@ -1196,6 +1247,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  min-height: 120px;
 }
 
 .suggestion-item {
@@ -1255,11 +1307,60 @@ export default {
   font-size: 0.85rem;
   text-align: center;
   padding: 0.5rem;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Skeleton loader styles */
+.skeleton-item {
+  pointer-events: none;
+  cursor: default;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(197, 212, 255, 0.1) 25%,
+    rgba(197, 212, 255, 0.2) 50%,
+    rgba(197, 212, 255, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-rank {
+  width: 20px;
+  height: 14px;
+  margin-right: 0.5rem;
+}
+
+.skeleton-move {
+  flex: 1;
+  height: 14px;
+  max-width: 60px;
+}
+
+.skeleton-eval {
+  width: 40px;
+  height: 14px;
 }
 
 /* Move history styles */
 .moves-list {
-  max-height: 200px;
+  max-height: 50vh;
   overflow-y: auto;
   border: 1px solid rgba(197, 212, 255, 0.1);
   border-radius: 8px;
