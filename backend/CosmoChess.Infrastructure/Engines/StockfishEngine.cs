@@ -14,6 +14,7 @@ namespace CosmoChess.Infrastructure.Engines
         private readonly Channel<StockfishRequestBase> _queue = Channel.CreateUnbounded<StockfishRequestBase>();
         private readonly string _stockfishPath;
         private readonly ILogger<StockfishEngine> _logger;
+        private readonly AppConfiguration _configuration;
         private Process _stockfishProcess;
         private StreamWriter _input;
         private StreamReader _output;
@@ -22,6 +23,7 @@ namespace CosmoChess.Infrastructure.Engines
         public StockfishEngine(AppConfiguration configuration, ILogger<StockfishEngine> logger)
         {
             _stockfishPath = configuration.StockfishPath;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -61,7 +63,7 @@ namespace CosmoChess.Infrastructure.Engines
 
             await _queue.Writer.WriteAsync(request, cancellationToken);
 
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_configuration.StockfishAnalysisTimeoutSeconds));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
             await using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
@@ -77,7 +79,7 @@ namespace CosmoChess.Infrastructure.Engines
 
             await _queue.Writer.WriteAsync(request, cancellationToken);
 
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_configuration.StockfishAnalysisTimeoutSeconds));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
             await using (linkedCts.Token.Register(() => tcs.TrySetCanceled()))
@@ -120,6 +122,11 @@ namespace CosmoChess.Infrastructure.Engines
         private async Task ProcessSimpleRequest(StockfishRequest request)
         {
             await _input.WriteLineAsync("ucinewgame");
+
+            // Configure Stockfish UCI options for optimal analysis
+            await _input.WriteLineAsync($"setoption name Hash value {_configuration.StockfishHashSize}");
+            await _input.WriteLineAsync($"setoption name Threads value {_configuration.StockfishThreads}");
+
             await _input.WriteLineAsync($"position fen {request.Fen}");
             await _input.WriteLineAsync($"go depth {request.Depth}");
             await _input.FlushAsync();
@@ -131,12 +138,21 @@ namespace CosmoChess.Infrastructure.Engines
         private async Task ProcessMultiPvRequest(StockfishMultiPvRequest request)
         {
             await _input.WriteLineAsync("ucinewgame");
+
+            // Configure Stockfish UCI options for optimal analysis
+            await _input.WriteLineAsync($"setoption name Hash value {_configuration.StockfishHashSize}");
+            await _input.WriteLineAsync($"setoption name Threads value {_configuration.StockfishThreads}");
+            await _input.WriteLineAsync("setoption name UCI_ShowWDL value true");
             await _input.WriteLineAsync($"setoption name MultiPV value {request.MultiPv}");
+
             await _input.WriteLineAsync($"position fen {request.Fen}");
             await _input.WriteLineAsync($"go depth {request.Depth}");
             await _input.FlushAsync();
 
-            var result = await ReadMultiPvAsync(request.Depth, request.MultiPv, request.CancellationToken);
+            // Extract side to move from FEN (needed for score interpretation)
+            var isBlackToMove = IsBlackToMove(request.Fen);
+
+            var result = await ReadMultiPvAsync(request.Depth, request.MultiPv, isBlackToMove, request.CancellationToken);
 
             // Reset MultiPV to 1 for future requests
             await _input.WriteLineAsync("setoption name MultiPV value 1");
@@ -158,10 +174,11 @@ namespace CosmoChess.Infrastructure.Engines
             throw new TaskCanceledException("Analysis cancelled");
         }
 
-        private async Task<AnalysisResult> ReadMultiPvAsync(int targetDepth, int multiPv, CancellationToken cancellationToken)
+        private async Task<AnalysisResult> ReadMultiPvAsync(int targetDepth, int multiPv, bool isBlackToMove, CancellationToken cancellationToken)
         {
             var lines = new Dictionary<int, AnalysisLine>();
             var bestMove = "";
+            var minAcceptableDepth = Math.Max(1, targetDepth - 3); // Accept depth within 3 of target
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -175,12 +192,21 @@ namespace CosmoChess.Infrastructure.Engines
                     break;
                 }
 
-                if (line.StartsWith("info") && line.Contains("multipv") && line.Contains($"depth {targetDepth}"))
+                // Accept info lines with multipv that are close to target depth
+                if (line.StartsWith("info") && line.Contains("multipv"))
                 {
-                    var analysisLine = ParseInfoLine(line);
-                    if (analysisLine != null)
+                    var currentDepth = ExtractDepth(line);
+                    if (currentDepth >= minAcceptableDepth)
                     {
-                        lines[analysisLine.Rank] = analysisLine;
+                        var analysisLine = ParseInfoLine(line, isBlackToMove);
+                        if (analysisLine != null)
+                        {
+                            // Update if this is deeper analysis or first time seeing this rank
+                            if (!lines.ContainsKey(analysisLine.Rank) || currentDepth >= targetDepth)
+                            {
+                                lines[analysisLine.Rank] = analysisLine;
+                            }
+                        }
                     }
                 }
             }
@@ -193,7 +219,21 @@ namespace CosmoChess.Infrastructure.Engines
             return new AnalysisResult(resultLines, targetDepth);
         }
 
-        private AnalysisLine ParseInfoLine(string line)
+        private bool IsBlackToMove(string fen)
+        {
+            // FEN format: <position> <side-to-move> <castling> <en-passant> <halfmove> <fullmove>
+            // Second field indicates side to move: 'w' for white, 'b' for black
+            var fenParts = fen.Split(' ');
+            return fenParts.Length > 1 && fenParts[1] == "b";
+        }
+
+        private int ExtractDepth(string line)
+        {
+            var match = Regex.Match(line, @"\bdepth (\d+)");
+            return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+        }
+
+        private AnalysisLine ParseInfoLine(string line, bool isBlackToMove)
         {
             try
             {
@@ -220,6 +260,17 @@ namespace CosmoChess.Infrastructure.Engines
                     if (cpMatch.Success)
                     {
                         score = int.Parse(cpMatch.Groups[1].Value);
+                    }
+                }
+
+                // Stockfish returns scores from the perspective of the side to move
+                // We need to convert to white's perspective for consistent UI display
+                if (isBlackToMove)
+                {
+                    score = -score;
+                    if (mateIn.HasValue)
+                    {
+                        mateIn = -mateIn.Value;
                     }
                 }
 

@@ -146,7 +146,7 @@ class GameService {
     }
   }
 
-  async analyzeMultiPv(fen, depth = 15, multiPv = 3) {
+  async analyzeMultiPv(fen, depth = 22, multiPv = 3) {
     try {
       const response = await axios.post('/games/analyze-multipv', {
         Fen: fen,

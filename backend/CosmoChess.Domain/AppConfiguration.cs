@@ -10,6 +10,12 @@ namespace CosmoChess.Domain
         public string JwtAudience { get; set; } = "CosmoChess";
         public string StockfishPath { get; set; } = string.Empty;
 
+        // Stockfish engine configuration
+        public int StockfishHashSize { get; set; } = 1024;  // MB (default 1GB)
+        public int StockfishThreads { get; set; } = 4;      // Number of threads
+        public int StockfishDefaultDepth { get; set; } = 22; // Default analysis depth
+        public int StockfishAnalysisTimeoutSeconds { get; set; } = 60; // Timeout for analysis
+
         public bool IsDevelopment { get; set; }
 
         public static AppConfiguration FromEnvironmentVariables()
@@ -22,7 +28,13 @@ namespace CosmoChess.Domain
                 IsDevelopment = GetEnvVar("ASPNETCORE_ENVIRONMENT") == "Development",
                 JwtIssuer = GetEnvVar("JWT_ISSUER", "CosmoChess"),
                 JwtAudience = GetEnvVar("JWT_AUDIENCE", "CosmoChess"),
-                StockfishPath = GetEnvVar("STOCKFISH_PATH", "stockfish")
+                StockfishPath = GetEnvVar("STOCKFISH_PATH", "stockfish"),
+
+                // Stockfish engine parameters with environment variable overrides
+                StockfishHashSize = GetEnvVarInt("STOCKFISH_HASH_SIZE", 1024),
+                StockfishThreads = GetEnvVarInt("STOCKFISH_THREADS", 4),
+                StockfishDefaultDepth = GetEnvVarInt("STOCKFISH_DEFAULT_DEPTH", 22),
+                StockfishAnalysisTimeoutSeconds = GetEnvVarInt("STOCKFISH_TIMEOUT_SECONDS", 60)
             };
             return config;
         }
@@ -35,6 +47,12 @@ namespace CosmoChess.Domain
         private static string GetEnvVar(string key, string defaultValue = "")
         {
             return Environment.GetEnvironmentVariable(key) ?? defaultValue;
+        }
+
+        private static int GetEnvVarInt(string key, int defaultValue)
+        {
+            var value = Environment.GetEnvironmentVariable(key);
+            return int.TryParse(value, out var result) ? result : defaultValue;
         }
     }
     // Extension method для DI

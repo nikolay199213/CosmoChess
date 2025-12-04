@@ -781,7 +781,7 @@ export default {
       this.analyzing = true
 
       try {
-        const result = await gameService.analyzeMultiPv(this.chess.fen(), 15, 3)
+        const result = await gameService.analyzeMultiPv(this.chess.fen(), 22, 3)
 
         if (result.success && result.lines) {
           this.topMoves = result.lines.map(line => ({
