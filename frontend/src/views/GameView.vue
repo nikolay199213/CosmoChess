@@ -103,8 +103,13 @@
 
         <!-- Top 3 moves (analysis mode) -->
         <div v-if="analysisMode" class="top-moves">
-          <h3>{{ $t('game.bestMoves') }}</h3>
-          <div v-if="analyzing" class="moves-suggestions">
+          <h3>
+            {{ $t('game.bestMoves') }}
+            <span v-if="currentAnalysisDepth > 0" class="analysis-depth">
+              {{ analyzing ? `(depth ${currentAnalysisDepth}...)` : `(depth ${currentAnalysisDepth})` }}
+            </span>
+          </h3>
+          <div v-if="analyzing && topMoves.length === 0" class="moves-suggestions">
             <!-- Skeleton loader for 3 moves -->
             <div v-for="i in 3" :key="`skeleton-${i}`" class="suggestion-item skeleton-item">
               <span class="skeleton skeleton-rank"></span>
@@ -117,7 +122,7 @@
               v-for="(line, index) in topMoves"
               :key="index"
               class="suggestion-item"
-              :class="{ 'best-move': index === 0 }"
+              :class="{ 'best-move': index === 0, 'analyzing-update': analyzing }"
               @click="playMove(line.move)"
             >
               <span class="move-rank">{{ index + 1 }}.</span>
@@ -249,6 +254,8 @@ export default {
         isMate: false,
         mateIn: null
       },
+      currentAnalysisDepth: 0,  // Current depth of analysis (for progressive display)
+      analysisAbortController: null, // For canceling ongoing analysis
 
       // Variation tracking
       isInVariation: false,
@@ -769,40 +776,80 @@ export default {
         this.analyzeCurrentPosition()
       } else {
         // Exit analysis mode - reset to game state
+        if (this.analysisAbortController) {
+          this.analysisAbortController.aborted = true
+        }
         this.exitVariation()
         this.topMoves = []
         this.currentEvaluation = { score: 0, isMate: false, mateIn: null }
+        this.currentAnalysisDepth = 0
       }
     },
 
     async analyzeCurrentPosition() {
       if (!this.analysisMode) return
 
+      // Cancel any ongoing analysis
+      if (this.analysisAbortController) {
+        this.analysisAbortController.aborted = true
+      }
+      this.analysisAbortController = {
+        aborted: false,
+        abort: function() { this.aborted = true }
+      }
+      const currentAbortController = this.analysisAbortController
+
       this.analyzing = true
+      const currentFen = this.chess.fen()
+
+      // Progressive analysis depths: quick → medium → deep
+      const depths = [12, 18, 22]
 
       try {
-        const result = await gameService.analyzeMultiPv(this.chess.fen(), 22, 3)
+        for (const depth of depths) {
+          // Check if analysis was cancelled or position changed
+          if (currentAbortController.aborted || this.chess.fen() !== currentFen) {
+            break
+          }
 
-        if (result.success && result.lines) {
-          this.topMoves = result.lines.map(line => ({
-            ...line,
-            moveSan: this.convertUciToSan(line.move)
-          }))
+          this.currentAnalysisDepth = depth
 
-          // Set current evaluation from best line
-          if (this.topMoves.length > 0) {
-            const bestLine = this.topMoves[0]
-            this.currentEvaluation = {
-              score: bestLine.score,
-              isMate: bestLine.isMate,
-              mateIn: bestLine.mateIn
+          const result = await gameService.analyzeMultiPv(currentFen, depth, 3)
+
+          // Check again after async operation
+          if (currentAbortController.aborted || this.chess.fen() !== currentFen) {
+            break
+          }
+
+          if (result.success && result.lines) {
+            this.topMoves = result.lines.map(line => ({
+              ...line,
+              moveSan: this.convertUciToSan(line.move)
+            }))
+
+            // Set current evaluation from best line
+            if (this.topMoves.length > 0) {
+              const bestLine = this.topMoves[0]
+              this.currentEvaluation = {
+                score: bestLine.score,
+                isMate: bestLine.isMate,
+                mateIn: bestLine.mateIn
+              }
             }
+          }
+
+          // Small delay between depths to allow UI updates
+          if (depth < depths[depths.length - 1]) {
+            await new Promise(resolve => setTimeout(resolve, 50))
           }
         }
       } catch (error) {
         console.error('Analysis error:', error)
       } finally {
-        this.analyzing = false
+        // Only stop analyzing if this is still the current analysis
+        if (currentAbortController === this.analysisAbortController) {
+          this.analyzing = false
+        }
       }
     },
 
@@ -1219,6 +1266,15 @@ export default {
   padding-bottom: 0.4rem;
 }
 
+.analysis-depth {
+  font-size: 0.75rem;
+  color: var(--cosmic-stars, #C5D4FF);
+  font-weight: 400;
+  opacity: 0.8;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  margin-left: 0.5rem;
+}
+
 .game-details p {
   margin: 0.3rem 0;
   color: var(--cosmic-stars, #C5D4FF);
@@ -1267,6 +1323,19 @@ export default {
 .suggestion-item.best-move {
   background: rgba(122, 76, 224, 0.2);
   border: 1px solid rgba(122, 76, 224, 0.4);
+}
+
+.suggestion-item.analyzing-update {
+  animation: pulse-update 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-update {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .move-rank {
