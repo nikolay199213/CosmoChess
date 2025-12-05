@@ -1,6 +1,6 @@
 # Nginx Reverse Proxy Configuration
 
-This directory contains the nginx configuration for the CosmoChess application reverse proxy.
+This directory contains the nginx configuration for the CosmoChess application reverse proxy with SSL/HTTPS support.
 
 ## Overview
 
@@ -9,6 +9,17 @@ Nginx acts as the entry point for all requests and routes them to the appropriat
 - **Frontend**: Vue.js application served by nginx (port 8080)
 - **Backend API**: .NET application (port 5000)
 - **SignalR Hub**: WebSocket connection for real-time gameplay
+
+## SSL/HTTPS Support
+
+The configuration includes Let's Encrypt SSL certificates for secure HTTPS connections:
+
+- **Domains**: cosmochess.ru, cosmochess.space
+- **Automatic renewal**: Certbot handles certificate renewal
+- **Security**: TLS 1.2/1.3, modern ciphers, security headers
+- **HTTP → HTTPS**: Automatic redirect from HTTP to HTTPS
+
+See [SSL-SETUP.md](../SSL-SETUP.md) for complete setup instructions.
 
 ## Routing Configuration
 
