@@ -21,7 +21,18 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(dotnet run:*)",
-      "Bash(ren:*)"
+      "Bash(ren:*)",
+      "Bash(dotnet new:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(where:*)",
+      "Bash(curl:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker restart:*)",
+      "Bash(timeout 3 docker logs:*)",
+      "Bash(dotnet sln add:*)"
     ],
     "deny": [],
     "ask": []

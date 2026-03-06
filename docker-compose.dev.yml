@@ -1,18 +1,18 @@
 version: '3.8'
 
+# Для локальной разработки - только инфраструктура
 services:
-  # Zookeeper for Kafka
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: cosmochess-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
     networks:
       - cosmochess-network
-    restart: unless-stopped
 
-  # Apache Kafka
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: cosmochess-kafka
@@ -20,6 +20,7 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -30,9 +31,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
       - cosmochess-network
-    restart: unless-stopped
 
-  # Kafka UI for monitoring
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: cosmochess-kafka-ui
@@ -45,9 +44,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     networks:
       - cosmochess-network
-    restart: unless-stopped
 
-  # PostgreSQL Database
   postgres:
     image: postgres:15
     container_name: cosmochess-postgres
@@ -59,30 +56,22 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - cosmochess-network
-    restart: unless-stopped
 
-  # Engine Service (Stockfish wrapper)
   engine-service:
     build:
       context: ./backend/CosmoChess.EngineService
       dockerfile: Dockerfile
     container_name: cosmochess-engine
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Development
       - STOCKFISH_PATH=/usr/games/stockfish
-      - STOCKFISH_HASH_SIZE=1024
-      - STOCKFISH_THREADS=4
-      - STOCKFISH_TIMEOUT_SECONDS=60
     ports:
       - "5001:5001"
     networks:
       - cosmochess-network
-    restart: unless-stopped
 
-  # Bot Service (Kafka-based bot move processor)
   bot-service:
     build:
       context: ./backend/CosmoChess.BotService
@@ -99,60 +88,6 @@ services:
       - engine-service
     networks:
       - cosmochess-network
-    restart: unless-stopped
-
-  # Backend API (Game Service)
-  backend:
-    build:
-      context: ./backend
-      dockerfile: CosmoChess.Api/Dockerfile
-    container_name: cosmochess-backend
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - DB_CONNECTION_STRING=Host=postgres;Database=cosmochess;Username=postgres;Password=password123
-      - ENGINE_SERVICE_URL=http://engine-service:5001
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - KAFKA_GROUP_ID=game-service
-      - KAFKA_REQUEST_TOPIC=bot-move-requests
-      - KAFKA_RESULT_TOPIC=bot-move-results
-    expose:
-      - "5000"
-    depends_on:
-      - postgres
-      - engine-service
-      - kafka
-    networks:
-      - cosmochess-network
-    restart: unless-stopped
-
-  # Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: cosmochess-frontend
-    expose:
-      - "8080"
-    depends_on:
-      - backend
-    networks:
-      - cosmochess-network
-    restart: unless-stopped
-
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: cosmochess-nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - cosmochess-network
-    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -1,15 +1,18 @@
 ﻿using CosmoChess.Api;
 using CosmoChess.Api.Hubs;
+using CosmoChess.Api.Services;
 using CosmoChess.Application.Handlers;
 using CosmoChess.Domain.Interface.Auth;
 using CosmoChess.Domain.Interface.Engines;
 using CosmoChess.Domain.Interface.Repositories;
+using CosmoChess.Domain.Interface.Services;
 using CosmoChess.Infrastructure.Auth;
 using CosmoChess.Infrastructure.Engines;
+using CosmoChess.Infrastructure.Kafka;
 using CosmoChess.Infrastructure.Persistence;
 using CosmoChess.Infrastructure.Repositories;
 using CosmoChess.Infrastructure.Services;
-using CosmoChess.Domain.Interface.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -56,12 +59,39 @@ builder.Services.AddJwtAuthentication();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<StockfishEngine>();
-builder.Services.AddSingleton<IEngineService>(sp => sp.GetRequiredService<StockfishEngine>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<StockfishEngine>());
 
-// Bot services
-builder.Services.AddSingleton<IBotService, BotService>();
+// Engine Service HTTP Client (replaces StockfishEngine)
+var engineServiceUrl = builder.Configuration["ENGINE_SERVICE_URL"] ?? "http://engine-service:5001";
+builder.Services.AddHttpClient<IEngineService, EngineHttpClient>(client =>
+{
+    client.BaseAddress = new Uri(engineServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
+// Kafka Configuration
+var kafkaBootstrapServers = builder.Configuration["KAFKA_BOOTSTRAP_SERVERS"] ?? "kafka:29092";
+var kafkaGroupId = builder.Configuration["KAFKA_GROUP_ID"] ?? "game-service";
+var kafkaRequestTopic = builder.Configuration["KAFKA_REQUEST_TOPIC"] ?? "bot-move-requests";
+var kafkaResultTopic = builder.Configuration["KAFKA_RESULT_TOPIC"] ?? "bot-move-results";
+
+// Kafka Producer for bot move requests
+builder.Services.AddSingleton(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<BotMoveProducer>>();
+    return new BotMoveProducer(kafkaBootstrapServers, kafkaRequestTopic, logger);
+});
+
+// Kafka Consumer for bot move results
+builder.Services.AddSingleton(sp =>
+{
+    var hubContext = sp.GetRequiredService<IHubContext<GameHub>>();
+    var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+    var logger = sp.GetRequiredService<ILogger<BotMoveResultConsumer>>();
+    return new BotMoveResultConsumer(kafkaBootstrapServers, kafkaGroupId, kafkaResultTopic, hubContext, scopeFactory, logger);
+});
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMoveResultConsumer>());
+
+// Bot services (modified to use Kafka)
 builder.Services.AddSingleton<BotMoveBackgroundService>();
 builder.Services.AddSingleton<IBotMoveService>(sp => sp.GetRequiredService<BotMoveBackgroundService>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMoveBackgroundService>());
@@ -106,8 +136,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// HTTPS redirection only in development (production uses nginx for SSL)
-if (app.Environment.IsDevelopment())
+// HTTPS redirection only in production (handled by nginx/reverse proxy)
+if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }

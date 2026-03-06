@@ -1,4 +1,5 @@
-﻿﻿﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CosmoChess.Domain
 {
@@ -18,49 +19,40 @@ namespace CosmoChess.Domain
 
         public bool IsDevelopment { get; set; }
 
-        public static AppConfiguration FromEnvironmentVariables()
+        public static AppConfiguration FromConfiguration(IConfiguration configuration)
         {
-            var config = new AppConfiguration
+            return new AppConfiguration
             {
-                JwtKey = GetEnvVar("JWT_KEY", "YourSuperSecretKeyThatIsAtLeast32CharactersLong!"),
-                DatabaseConnectionString = GetEnvVar("DB_CONNECTION_STRING",
-                    "Host=localhost;Database=cosmochess;Username=postgres;Password=password123"),
-                IsDevelopment = GetEnvVar("ASPNETCORE_ENVIRONMENT") == "Development",
-                JwtIssuer = GetEnvVar("JWT_ISSUER", "CosmoChess"),
-                JwtAudience = GetEnvVar("JWT_AUDIENCE", "CosmoChess"),
-                StockfishPath = GetEnvVar("STOCKFISH_PATH", "stockfish"),
+                JwtKey = configuration["JWT_KEY"] ?? configuration["Jwt:Key"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!",
+                DatabaseConnectionString = configuration["DB_CONNECTION_STRING"]
+                    ?? configuration.GetConnectionString("DefaultConnection")
+                    ?? "Host=localhost;Database=cosmochess;Username=postgres;Password=password123",
+                IsDevelopment = configuration["ASPNETCORE_ENVIRONMENT"] == "Development",
+                JwtIssuer = configuration["JWT_ISSUER"] ?? "CosmoChess",
+                JwtAudience = configuration["JWT_AUDIENCE"] ?? "CosmoChess",
+                StockfishPath = configuration["STOCKFISH_PATH"] ?? configuration["Stockfish:Path"] ?? "stockfish",
 
-                // Stockfish engine parameters with environment variable overrides
-                StockfishHashSize = GetEnvVarInt("STOCKFISH_HASH_SIZE", 1024),
-                StockfishThreads = GetEnvVarInt("STOCKFISH_THREADS", 4),
-                StockfishDefaultDepth = GetEnvVarInt("STOCKFISH_DEFAULT_DEPTH", 22),
-                StockfishAnalysisTimeoutSeconds = GetEnvVarInt("STOCKFISH_TIMEOUT_SECONDS", 60)
+                // Stockfish engine parameters
+                StockfishHashSize = GetConfigInt(configuration, "STOCKFISH_HASH_SIZE", 1024),
+                StockfishThreads = GetConfigInt(configuration, "STOCKFISH_THREADS", 4),
+                StockfishDefaultDepth = GetConfigInt(configuration, "STOCKFISH_DEFAULT_DEPTH", 22),
+                StockfishAnalysisTimeoutSeconds = GetConfigInt(configuration, "STOCKFISH_TIMEOUT_SECONDS", 60)
             };
-            return config;
-        }
-        private static string GetRequiredEnvVar(string key)
-        {
-            return Environment.GetEnvironmentVariable(key)
-                   ?? throw new InvalidOperationException($"Required environment variable {key} is not set");
         }
 
-        private static string GetEnvVar(string key, string defaultValue = "")
+        private static int GetConfigInt(IConfiguration configuration, string key, int defaultValue)
         {
-            return Environment.GetEnvironmentVariable(key) ?? defaultValue;
-        }
-
-        private static int GetEnvVarInt(string key, int defaultValue)
-        {
-            var value = Environment.GetEnvironmentVariable(key);
+            var value = configuration[key];
             return int.TryParse(value, out var result) ? result : defaultValue;
         }
     }
+
     // Extension method для DI
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddAppConfiguration(this IServiceCollection services)
+        public static IServiceCollection AddAppConfiguration(this IServiceCollection services, IConfiguration configuration)
         {
-            var config = AppConfiguration.FromEnvironmentVariables();
+            var config = AppConfiguration.FromConfiguration(configuration);
             services.AddSingleton(config);
             return services;
         }

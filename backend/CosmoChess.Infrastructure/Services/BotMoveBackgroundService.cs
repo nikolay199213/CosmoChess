@@ -3,6 +3,8 @@ using CosmoChess.Domain.Entities;
 using CosmoChess.Domain.Enums;
 using CosmoChess.Domain.Interface.Repositories;
 using CosmoChess.Domain.Interface.Services;
+using CosmoChess.Infrastructure.Kafka;
+using CosmoChess.Infrastructure.Kafka.Models;
 using Chess;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -41,16 +43,16 @@ namespace CosmoChess.Infrastructure.Services
     public class BotMoveBackgroundService : BackgroundService, IBotMoveService
     {
         private readonly Channel<(BotMoveRequest Request, Action<BotMoveResult> OnComplete)> _channel;
-        private readonly IBotService _botService;
+        private readonly BotMoveProducer _kafkaProducer;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<BotMoveBackgroundService> _logger;
 
         public BotMoveBackgroundService(
-            IBotService botService,
+            BotMoveProducer kafkaProducer,
             IServiceScopeFactory scopeFactory,
             ILogger<BotMoveBackgroundService> logger)
         {
-            _botService = botService;
+            _kafkaProducer = kafkaProducer;
             _scopeFactory = scopeFactory;
             _logger = logger;
             _channel = Channel.CreateUnbounded<(BotMoveRequest, Action<BotMoveResult>)>();
@@ -72,90 +74,43 @@ namespace CosmoChess.Infrastructure.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("BotMoveBackgroundService started");
+            _logger.LogInformation("BotMoveBackgroundService started (Kafka mode)");
 
             await foreach (var (request, onComplete) in _channel.Reader.ReadAllAsync(stoppingToken))
             {
                 try
                 {
-                    var result = await ProcessBotMoveAsync(request, stoppingToken);
-                    onComplete(result);
+                    await ProcessBotMoveAsync(request, stoppingToken);
+
+                    // Note: onComplete callback is not called anymore
+                    // Results will be delivered via Kafka Consumer → SignalR
+                    _logger.LogInformation("Bot move request sent to Kafka for game {GameId}", request.GameId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing bot move for game {GameId}", request.GameId);
+                    _logger.LogError(ex, "Error sending bot move request to Kafka for game {GameId}", request.GameId);
                 }
             }
         }
 
-        private async Task<BotMoveResult> ProcessBotMoveAsync(BotMoveRequest request, CancellationToken cancellationToken)
+        private async Task ProcessBotMoveAsync(BotMoveRequest request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Processing bot move for game {GameId}", request.GameId);
+            _logger.LogInformation("Sending bot move request to Kafka for game {GameId}", request.GameId);
 
-            // Add thinking delay for realism
-            var delay = _botService.GetThinkingDelayMs(request.Difficulty);
-            await Task.Delay(delay, cancellationToken);
-
-            // Get best move from engine (UCI format like "e2e4")
-            var uciMove = await _botService.GetBotMoveAsync(request.CurrentFen, request.Difficulty, request.Style, cancellationToken);
-
-            // Use Gera.Chess to apply move, check game state and get new FEN
-            var board = ChessBoard.LoadFromFen(request.CurrentFen);
-
-            // Parse UCI move (e2e4 -> "e2" to "e4", e7e8q -> "e7" to "e8" promote to 'q')
-            var from = uciMove[..2];
-            var to = uciMove[2..4];
-
-            if (uciMove.Length > 4)
-            {
-                // Promotion move
-                var promotionPiece = uciMove[4];
-                board.Move(new Move(from, to));
-            }
-            else
-            {
-                board.Move(new Move(from, to));
-            }
-
-            // Get new FEN using ToFen() method
-            var newFen = board.ToFen();
-
-            // Check game end conditions using EndGame property
-            var isCheckmate = board.IsEndGame && board.EndGame?.EndgameType == EndgameType.Checkmate;
-            var isStalemate = board.IsEndGame && board.EndGame?.EndgameType == EndgameType.Stalemate;
-            var isDraw = board.IsEndGame && (
-                board.EndGame?.EndgameType == EndgameType.InsufficientMaterial ||
-                board.EndGame?.EndgameType == EndgameType.FiftyMoveRule ||
-                board.EndGame?.EndgameType == EndgameType.Repetition ||
-                board.EndGame?.EndgameType == EndgameType.DrawDeclared
-            );
-
-            // Use UCI notation for move (client will convert if needed)
-            var move = uciMove;
-
-            // Save move to database
-            using var scope = _scopeFactory.CreateScope();
-            var repository = scope.ServiceProvider.GetRequiredService<IGameRepository>();
-
-            var game = await repository.GetById(request.GameId, cancellationToken);
-            game.MakeMove(Game.BotPlayerId, move, newFen, isCheckmate, isStalemate, isDraw);
-            await repository.Update(game, cancellationToken);
-
-            _logger.LogInformation("Bot made move {Move} in game {GameId}", move, request.GameId);
-
-            return new BotMoveResult
+            // Convert domain request to Kafka message
+            var kafkaRequest = new KafkaBotMoveRequest
             {
                 GameId = request.GameId,
-                Move = move,
-                NewFen = newFen,
-                IsCheckmate = isCheckmate,
-                IsStalemate = isStalemate,
-                IsDraw = isDraw,
-                WhiteTimeRemainingSeconds = game.WhiteTimeRemainingSeconds,
-                BlackTimeRemainingSeconds = game.BlackTimeRemainingSeconds,
-                GameResult = isCheckmate || isStalemate || isDraw ? game.GameResult : null,
-                EndReason = isCheckmate || isStalemate || isDraw ? game.EndReason : null
+                Fen = request.CurrentFen,
+                Difficulty = (int)request.Difficulty,
+                Style = (int)request.Style,
+                Timestamp = DateTime.UtcNow
             };
+
+            // Send to Kafka (bot-service will process it)
+            await _kafkaProducer.PublishBotMoveRequestAsync(kafkaRequest, cancellationToken);
+
+            _logger.LogInformation("Bot move request sent to Kafka for game {GameId}", request.GameId);
         }
     }
 }

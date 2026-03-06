@@ -1,0 +1,6 @@
+@CosmoChess.EngineService_HostAddress = http://localhost:5091
+
+GET {{CosmoChess.EngineService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
