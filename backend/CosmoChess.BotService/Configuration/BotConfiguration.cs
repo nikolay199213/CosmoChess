@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace CosmoChess.BotService.Configuration
 {
     public class BotConfiguration

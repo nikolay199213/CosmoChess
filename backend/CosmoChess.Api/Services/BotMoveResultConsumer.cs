@@ -5,9 +5,6 @@ using CosmoChess.Domain.Entities;
 using CosmoChess.Domain.Interface.Repositories;
 using CosmoChess.Infrastructure.Kafka.Models;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace CosmoChess.Api.Services
 {

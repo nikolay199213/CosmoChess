@@ -4,8 +4,6 @@ using Confluent.Kafka;
 using CosmoChess.BotService.Configuration;
 using CosmoChess.BotService.Models;
 using CosmoChess.BotService.Services;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace CosmoChess.BotService.Kafka
 {

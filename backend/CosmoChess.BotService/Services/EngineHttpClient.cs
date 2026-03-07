@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using CosmoChess.BotService.Models;
-using Microsoft.Extensions.Logging;
 
 namespace CosmoChess.BotService.Services
 {

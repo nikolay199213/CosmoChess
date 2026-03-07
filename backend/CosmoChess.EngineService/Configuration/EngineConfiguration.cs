@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace CosmoChess.EngineService.Configuration
 {
     public class EngineConfiguration

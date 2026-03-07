@@ -1,5 +1,4 @@
 using CosmoChess.BotService.Models;
-using Microsoft.Extensions.Logging;
 
 namespace CosmoChess.BotService.Services
 {

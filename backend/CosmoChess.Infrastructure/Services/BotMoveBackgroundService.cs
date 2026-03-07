@@ -1,11 +1,7 @@
 using System.Threading.Channels;
-using CosmoChess.Domain.Entities;
 using CosmoChess.Domain.Enums;
-using CosmoChess.Domain.Interface.Repositories;
-using CosmoChess.Domain.Interface.Services;
 using CosmoChess.Infrastructure.Kafka;
 using CosmoChess.Infrastructure.Kafka.Models;
-using Chess;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

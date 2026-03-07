@@ -5,7 +5,6 @@ using CosmoChess.Application.Handlers;
 using CosmoChess.Domain.Interface.Auth;
 using CosmoChess.Domain.Interface.Engines;
 using CosmoChess.Domain.Interface.Repositories;
-using CosmoChess.Domain.Interface.Services;
 using CosmoChess.Infrastructure.Auth;
 using CosmoChess.Infrastructure.Engines;
 using CosmoChess.Infrastructure.Kafka;
@@ -14,7 +13,6 @@ using CosmoChess.Infrastructure.Repositories;
 using CosmoChess.Infrastructure.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);

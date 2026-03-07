@@ -1,5 +1,4 @@
 using CosmoChess.Domain.Enums;
-using CosmoChess.Domain.ValueObject;
 
 namespace CosmoChess.Application.DTOs
 {
