@@ -2,6 +2,7 @@ using CosmoChess.EngineService.Configuration;
 using CosmoChess.EngineService.Engines;
 using CosmoChess.EngineService.Interfaces;
 using CosmoChess.EngineService.Models;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,7 +37,14 @@ builder.Services.AddSingleton<StockfishEngine>();
 builder.Services.AddSingleton<IEngineService>(sp => sp.GetRequiredService<StockfishEngine>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<StockfishEngine>());
 
+builder.Host.UseSerilog((context, configuration) =>
+{
+    configuration.ReadFrom.Configuration(context.Configuration);
+});
+
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
