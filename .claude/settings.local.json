@@ -32,7 +32,8 @@
       "Bash(docker ps:*)",
       "Bash(docker restart:*)",
       "Bash(timeout 3 docker logs:*)",
-      "Bash(dotnet sln add:*)"
+      "Bash(dotnet sln add:*)",
+      "Bash(dotnet user-secrets:*)"
     ],
     "deny": [],
     "ask": []

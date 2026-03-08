@@ -2,6 +2,9 @@ using CosmoChess.EngineService.Configuration;
 using CosmoChess.EngineService.Engines;
 using CosmoChess.EngineService.Interfaces;
 using CosmoChess.EngineService.Models;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +39,22 @@ builder.Services.AddSingleton(engineConfig);
 builder.Services.AddSingleton<StockfishEngine>();
 builder.Services.AddSingleton<IEngineService>(sp => sp.GetRequiredService<StockfishEngine>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<StockfishEngine>());
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(serviceName: "engine-service"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter(opts =>
+        {
+            opts.Endpoint = new Uri(builder.Configuration["OPEN_TELEMETRY_EXPORTER_OTLP_ENDPOINT"] ??
+                                    "https://tempo-prod-10-prod-eu-west-2.grafana.net:443");
+            opts.Headers =
+                $"Authorization=Basic {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                    $"{builder.Configuration["TEMPO_USER"]}:{builder.Configuration["TEMPO_API_KEY"]}"))}";
+            opts.Protocol = OtlpExportProtocol.Grpc;
+        }));
+
 
 builder.Host.UseSerilog((context, configuration) =>
 {

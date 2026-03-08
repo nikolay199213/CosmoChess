@@ -13,6 +13,9 @@ using CosmoChess.Infrastructure.Repositories;
 using CosmoChess.Infrastructure.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -124,6 +127,23 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(serviceName: "game-service"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddSource("CosmoChess.Kafka")
+        .AddOtlpExporter(opts =>
+        {
+            opts.Endpoint = new Uri(builder.Configuration["OPEN_TELEMETRY_EXPORTER_OTLP_ENDPOINT"] ??
+                                    "https://tempo-prod-10-prod-eu-west-2.grafana.net:443");
+            opts.Headers =
+                $"Authorization=Basic {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                    $"{builder.Configuration["TEMPO_USER"]}:{builder.Configuration["TEMPO_API_KEY"]}"))}";
+            opts.Protocol = OtlpExportProtocol.Grpc;
+        }));
 
 builder.Host.UseSerilog((context, configuration) =>
 {
