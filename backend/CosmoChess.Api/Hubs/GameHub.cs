@@ -8,6 +8,7 @@ namespace CosmoChess.Api.Hubs
     [Authorize]
     public class GameHub : Hub
     {
+        public const string Path = "/api/gamehub";
         private readonly IMediator _mediator;
         private readonly ILogger<GameHub> _logger;
 

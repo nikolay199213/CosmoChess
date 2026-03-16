@@ -36,7 +36,7 @@ namespace CosmoChess.Application.Handlers
             {
                 Id = game.Id,
                 StartedAt = game.StartedAt,
-                Moves = game.Moves.Select(m => new GameMoveDto
+                Moves = game.Moves.OrderBy(m => m.MadeAt).Select(m => new GameMoveDto
                 {
                     GameId = m.GameId,
                     UserId = m.UserId,

@@ -12,11 +12,11 @@ namespace CosmoChess.BotService.Configuration
         {
             return new BotConfiguration
             {
-                KafkaBootstrapServers = configuration["KAFKA_BOOTSTRAP_SERVERS"] ?? "kafka:29092",
+                KafkaBootstrapServers = configuration["KAFKA_BOOTSTRAP_SERVERS"] ?? "localhost:9092",
                 KafkaGroupId = configuration["KAFKA_GROUP_ID"] ?? "bot-workers",
                 RequestTopic = configuration["KAFKA_REQUEST_TOPIC"] ?? "bot-move-requests",
                 ResultTopic = configuration["KAFKA_RESULT_TOPIC"] ?? "bot-move-results",
-                EngineServiceUrl = configuration["ENGINE_SERVICE_URL"] ?? "http://engine-service:5001"
+                EngineServiceUrl = configuration["ENGINE_SERVICE_URL"] ?? "http://localhost:5001"
             };
         }
     }

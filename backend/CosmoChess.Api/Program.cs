@@ -175,7 +175,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<GameHub>("/api/gamehub");
+app.MapHub<GameHub>(GameHub.Path);
 
 using (var scope = app.Services.CreateScope())
 {

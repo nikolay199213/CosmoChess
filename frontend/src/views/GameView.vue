@@ -72,7 +72,7 @@
           <div class="board-wrapper">
             <TheChessboard
               :board-config="boardConfig"
-              @board-created="(api) => (boardAPI = api)"
+              @board-created="onBoardCreated"
               @move="onMove"
             />
           </div>
@@ -475,7 +475,9 @@ export default {
   },
 
   async mounted() {
+    console.log('GameView mounted, gameId:', this.gameId)
     await this.initializeGame()
+    console.log('GameView initializeGame done, game:', this.game?.gameResult)
     await this.setupRealtimeConnection()
     this.startTimer()
     // Add keyboard navigation support
@@ -526,6 +528,9 @@ export default {
   },
 
   methods: {
+    onBoardCreated(api) {
+      this.boardAPI = markRaw(api)
+    },
     async initializeGame() {
       try {
         const result = await gameService.getGameById(this.gameId)
@@ -543,12 +548,36 @@ export default {
           const tempChess = new Chess()
 
           if (result.game.moves && result.game.moves.length > 0) {
-            this.moveHistory = result.game.moves.map(m => m.move)
-
-            // Build FEN history
-            for (const move of this.moveHistory) {
-              tempChess.move(move)
-              this.fenHistory.push(tempChess.fen())
+            // Build FEN history and convert moves to SAN
+            this.moveHistory = []
+            for (const m of result.game.moves) {
+              let san = m.move
+              // Try to replay the move to get proper SAN
+              try {
+                // Try SAN first
+                const chessMove = tempChess.move(m.move)
+                san = chessMove.san
+                this.fenHistory.push(tempChess.fen())
+              } catch {
+                try {
+                  // Try UCI format (e.g. "e2e4")
+                  if (m.move.length >= 4) {
+                    const from = m.move.substring(0, 2)
+                    const to = m.move.substring(2, 4)
+                    const promotion = m.move.length > 4 ? m.move[4] : undefined
+                    const chessMove = tempChess.move({ from, to, promotion })
+                    san = chessMove.san
+                    this.fenHistory.push(tempChess.fen())
+                  }
+                } catch {
+                  // Both failed — use resultFen from backend to stay in sync
+                  if (m.resultFen) {
+                    tempChess.load(m.resultFen)
+                    this.fenHistory.push(m.resultFen)
+                  }
+                }
+              }
+              this.moveHistory.push(san)
             }
           }
 
@@ -675,7 +704,8 @@ export default {
 
     handlePlayerJoined(data) {
       console.log('Player joined:', data)
-      if (this.game) {
+      // Only update game state if the game is still waiting for a player (WaitJoin)
+      if (this.game && this.game.gameResult === 0) {
         this.game.blackPlayerId = data.playerId
         this.game.blackPlayerUsername = data.username || 'Player'
         this.game.gameResult = 1 // Set to InProgress

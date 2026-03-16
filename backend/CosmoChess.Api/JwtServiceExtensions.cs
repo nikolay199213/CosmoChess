@@ -1,4 +1,5 @@
-﻿using CosmoChess.Domain;
+﻿using CosmoChess.Api.Hubs;
+using CosmoChess.Domain;
 using CosmoChess.Domain.Interface.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -44,7 +45,7 @@ namespace CosmoChess.Api
                             var accessToken = context.Request.Query["access_token"];
                             var path = context.HttpContext.Request.Path;
 
-                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/gameHub"))
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(GameHub.Path))
                             {
                                 context.Token = accessToken;
                             }
