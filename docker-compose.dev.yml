@@ -58,12 +58,22 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - cosmochess-network
+  redis:
+    image: redis:7-alpine
+    container_name: cosmochess-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cosmochess-network
+    restart: unless-stopped
 
   engine-service:
     build:
       context: ./backend/CosmoChess.EngineService
       dockerfile: Dockerfile
     container_name: cosmochess-engine
+    depends_on:
+     - redis
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - STOCKFISH_PATH=/usr/games/stockfish

@@ -33,7 +33,13 @@
       "Bash(docker restart:*)",
       "Bash(timeout 3 docker logs:*)",
       "Bash(dotnet sln add:*)",
-      "Bash(dotnet user-secrets:*)"
+      "Bash(dotnet user-secrets:*)",
+      "Bash(find:*)",
+      "Bash(xargs ls:*)",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "WebFetch(domain:qwerty084.github.io)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

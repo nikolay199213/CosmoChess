@@ -64,18 +64,31 @@ services:
       - cosmochess-network
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: cosmochess-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cosmochess-network
+    restart: unless-stopped
+    
+
   # Engine Service (Stockfish wrapper)
   engine-service:
     build:
       context: ./backend/CosmoChess.EngineService
       dockerfile: Dockerfile
     container_name: cosmochess-engine
+    depends_on:
+     - redis
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - STOCKFISH_PATH=/usr/games/stockfish
       - STOCKFISH_HASH_SIZE=1024
       - STOCKFISH_THREADS=4
       - STOCKFISH_TIMEOUT_SECONDS=60
+      - REDIS_CONNECTION_STRING=redis:6379
     ports:
       - "5001:5001"
     networks:

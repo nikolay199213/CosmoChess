@@ -2,6 +2,7 @@ using CosmoChess.EngineService.Configuration;
 using CosmoChess.EngineService.Engines;
 using CosmoChess.EngineService.Interfaces;
 using CosmoChess.EngineService.Models;
+using CosmoChess.EngineService.Services;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -39,6 +40,13 @@ builder.Services.AddSingleton(engineConfig);
 builder.Services.AddSingleton<StockfishEngine>();
 builder.Services.AddSingleton<IEngineService>(sp => sp.GetRequiredService<StockfishEngine>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<StockfishEngine>());
+builder.Services.AddSingleton<EngineCacheService>();
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = engineConfig.RedisConnectionString;
+    options.InstanceName = "engine:";
+});
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource
@@ -80,7 +88,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "engi
     .WithTags("Health");
 
 // Analyze position (single best move)
-app.MapPost("/analyze", async (AnalyzeRequest request, IEngineService engineService, CancellationToken ct) =>
+app.MapPost("/analyze", async (AnalyzeRequest request, IEngineService engineService, EngineCacheService cache, CancellationToken ct) =>
 {
     try
     {
@@ -90,7 +98,13 @@ app.MapPost("/analyze", async (AnalyzeRequest request, IEngineService engineServ
         if (request.Depth <= 0 || request.Depth > 30)
             return Results.BadRequest(new { error = "Depth must be between 1 and 30" });
 
+        var cached = await cache.GetAnalysis(request.Fen, request.Depth);
+        if (cached != null)
+            return Results.Ok(new AnalyzeResponse(cached));
+
         var bestMove = await engineService.AnalyzeAsync(request.Fen, request.Depth, ct);
+        await cache.SetAnalysis(request.Fen, request.Depth, bestMove);
+
         return Results.Ok(new AnalyzeResponse(bestMove));
     }
     catch (TaskCanceledException)
@@ -111,7 +125,7 @@ app.MapPost("/analyze", async (AnalyzeRequest request, IEngineService engineServ
 .Produces(500);
 
 // Analyze position with multiple lines (Multi-PV)
-app.MapPost("/analyze-multipv", async (AnalyzeMultiPvRequest request, IEngineService engineService, CancellationToken ct) =>
+app.MapPost("/analyze-multipv", async (AnalyzeMultiPvRequest request, IEngineService engineService, EngineCacheService cache, CancellationToken ct) =>
 {
     try
     {
@@ -124,7 +138,13 @@ app.MapPost("/analyze-multipv", async (AnalyzeMultiPvRequest request, IEngineSer
         if (request.MultiPv <= 0 || request.MultiPv > 10)
             return Results.BadRequest(new { error = "MultiPV must be between 1 and 10" });
 
+        var cached = await cache.GetMultiPv(request.Fen, request.Depth, request.MultiPv);
+        if (cached != null)
+            return Results.Ok(cached);
+
         var result = await engineService.AnalyzeMultiPvAsync(request.Fen, request.Depth, request.MultiPv, ct);
+        await cache.SetMultiPv(request.Fen, request.Depth, request.MultiPv, result);
+
         return Results.Ok(result);
     }
     catch (TaskCanceledException)

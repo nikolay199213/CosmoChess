@@ -7,6 +7,8 @@ namespace CosmoChess.EngineService.Configuration
         public int StockfishThreads { get; set; } = 4;      // Number of threads
         public int StockfishDefaultDepth { get; set; } = 22; // Default analysis depth
         public int StockfishAnalysisTimeoutSeconds { get; set; } = 60; // Timeout for analysis
+        public string RedisConnectionString { get; set; } = string.Empty;
+        public int CacheExpirationMinutes { get; set; }
 
         public static EngineConfiguration FromConfiguration(IConfiguration configuration)
         {
@@ -16,7 +18,9 @@ namespace CosmoChess.EngineService.Configuration
                 StockfishHashSize = GetConfigInt(configuration, "STOCKFISH_HASH_SIZE", 1024),
                 StockfishThreads = GetConfigInt(configuration, "STOCKFISH_THREADS", 4),
                 StockfishDefaultDepth = GetConfigInt(configuration, "STOCKFISH_DEFAULT_DEPTH", 22),
-                StockfishAnalysisTimeoutSeconds = GetConfigInt(configuration, "STOCKFISH_TIMEOUT_SECONDS", 60)
+                StockfishAnalysisTimeoutSeconds = GetConfigInt(configuration, "STOCKFISH_TIMEOUT_SECONDS", 60),
+                RedisConnectionString = configuration["REDIS_CONNECTION_STRING"] ?? "localhost:6379",
+                CacheExpirationMinutes = GetConfigInt(configuration, "CACHE_EXPIRATION_MINUTES", 1440)
             };
         }
 
