@@ -204,16 +204,20 @@
 </template>
 
 <script>
-import { Chess } from 'chess.js'
 import { TheChessboard } from 'vue3-chessboard'
 import 'vue3-chessboard/style.css'
 import { gameService } from '../services/gameService'
-import { authService } from '../services/authService'
-import { gameConnectionService } from '../services/gameConnectionService'
-import { markRaw } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { onMounted, onUnmounted, getCurrentInstance } from 'vue'
 import GameTimer from '../components/GameTimer.vue'
 import EvaluationBar from '../components/EvaluationBar.vue'
 import PlayerInfo from '../components/PlayerInfo.vue'
+import { useGameCore } from '../composables/useGameCore'
+import { useGameTimer } from '../composables/useGameTimer'
+import { useMoveNavigation } from '../composables/useMoveNavigation'
+import { useGameAnalysis } from '../composables/useGameAnalysis'
+import { useBoardConfig } from '../composables/useBoardConfig'
+import { useGameConnection } from '../composables/useGameConnection'
 
 export default {
   name: 'GameView',
@@ -229,862 +233,259 @@ export default {
       required: true
     }
   },
-  data() {
-    return {
-      game: null,
-      chess: markRaw(new Chess()),
-      boardAPI: null,
-      error: '',
-      analyzing: false,
-      moveHistory: [],
-      loading: true,
-      currentFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      connectionStatus: '',
-      whiteTimeRemaining: 0,
-      blackTimeRemaining: 0,
-      timerInterval: null,
+  setup(props) {
+    const { t } = useI18n()
+    const instance = getCurrentInstance()
 
-      // Analysis mode state
-      analysisMode: false,
-      currentMoveIndex: 0,      // Current position in move history (0 = start)
-      fenHistory: [],           // FEN for each position
-      topMoves: [],             // Top 3 moves from engine
-      currentEvaluation: {
-        score: 0,
-        isMate: false,
-        mateIn: null
-      },
-      currentAnalysisDepth: 0,  // Current depth of analysis (for progressive display)
-      analysisAbortController: null, // For canceling ongoing analysis
+    // 1. Core game state
+    const core = useGameCore(props.gameId, { t })
 
-      // Variation tracking
-      isInVariation: false,
-      variationStartIndex: 0,
-      variationMoves: [],
-      savedMoveHistory: [],
-      savedFenHistory: [],
-      savedMoveIndex: 0
-    }
-  },
-  computed: {
-    boardConfig() {
-      const dests = new Map()
+    // 2. Timer
+    const timer = useGameTimer({
+      chess: core.chess,
+      hasTimeControl: core.hasTimeControl,
+      gameResult: core.gameResult,
+      t
+    })
 
-      // Create temp chess from currentFen for reactivity (this.chess is markRaw/non-reactive)
-      const tempChess = new Chess(this.currentFen)
+    // 3. Navigation
+    const navigation = useMoveNavigation({
+      chess: core.chess,
+      currentFen: core.currentFen,
+      moveHistory: core.moveHistory,
+      fenHistory: core.fenHistory
+    })
 
-      // In analysis mode, always allow moves for exploration
-      if (this.analysisMode) {
-        const moves = tempChess.moves({ verbose: true })
-        moves.forEach(move => {
-          if (!dests.has(move.from)) {
-            dests.set(move.from, [])
-          }
-          dests.get(move.from).push(move.to)
-        })
-      } else if (this.isPlayerTurn && this.currentMoveIndex === this.moveHistory.length) {
-        // Only allow moves if it's the current player's turn AND at current position
-        const moves = tempChess.moves({ verbose: true })
-        moves.forEach(move => {
-          if (!dests.has(move.from)) {
-            dests.set(move.from, [])
-          }
-          dests.get(move.from).push(move.to)
-        })
+    // 4. Analysis
+    const analysis = useGameAnalysis({ chess: core.chess })
+
+    // Wire analysis ↔ navigation (late binding)
+    analysis.setNavigationRefs({
+      currentMoveIndex: navigation.currentMoveIndex,
+      isInVariation: navigation.isInVariation,
+      startVariation: navigation.startVariation,
+      exitVariation: navigation.exitVariation
+    })
+
+    // Navigation calls analyzeCurrentPosition when in analysis mode
+    navigation.setAnalyzeCallback(() => {
+      if (analysis.analysisMode.value) {
+        analysis.analyzeCurrentPosition()
       }
-      // If not player's turn, dests stays empty - no moves allowed
+    })
 
-      // Determine player's color based on whether they're the creator
-      const userId = authService.getUserId()
-      const isWhite = this.game?.whitePlayerId === userId
+    // Wire timer ↔ analysis mode ref
+    timer.setAnalysisModeRef(analysis.analysisMode)
 
-      // Set movable color to player's color (they can only interact with their pieces)
-      // In analysis mode, allow both colors
-      let movableColor
-      if (this.analysisMode) {
-        movableColor = 'both'
-      } else {
-        movableColor = isWhite ? 'white' : 'black'
-      }
+    // 5. Board config (watchers included)
+    const board = useBoardConfig({
+      game: core.game,
+      chess: core.chess,
+      currentFen: core.currentFen,
+      moveHistory: core.moveHistory,
+      currentMoveIndex: navigation.currentMoveIndex,
+      isPlayerTurn: null, // computed inside useBoardConfig
+      analysisMode: analysis.analysisMode,
+      boardAPI: core.boardAPI,
+      t
+    })
 
-      return {
-        fen: this.currentFen,
-        orientation: 'white',
-        coordinates: true,
-        movable: {
-          free: false,
-          color: movableColor,
-          dests: dests
-        },
-        animation: {
-          enabled: true,
-          duration: 200
-        }
-      }
-    },
+    // 6. Connection
+    const connection = useGameConnection(props.gameId, {
+      game: core.game,
+      chess: core.chess,
+      currentFen: core.currentFen,
+      moveHistory: core.moveHistory,
+      fenHistory: core.fenHistory,
+      currentMoveIndex: navigation.currentMoveIndex,
+      error: core.error,
+      stopTimer: timer.stopTimer,
+      t
+    })
 
-    gameStatus() {
-      // Extract current turn from FEN for reactivity
-      const fenParts = this.currentFen.split(' ')
-      const currentTurn = fenParts[1] || 'w'
-      const currentColor = currentTurn === 'w' ? this.$t('game.white') : this.$t('game.black')
-      const oppositeColor = currentTurn === 'w' ? this.$t('game.black') : this.$t('game.white')
+    // Wire timer refs to connection so it can update times on move received
+    connection.setTimerRefs({
+      whiteTimeRemaining: timer.whiteTimeRemaining,
+      blackTimeRemaining: timer.blackTimeRemaining
+    })
 
-      if (this.chess.isGameOver()) {
-        if (this.chess.isCheckmate()) {
-          return this.$t('game.checkmate', { color: oppositeColor })
-        } else if (this.chess.isDraw()) {
-          return this.$t('game.draw')
-        }
-      } else if (this.chess.inCheck()) {
-        return this.$t('game.inCheck', { color: currentColor })
-      }
+    // --- Orchestrator: onMove ---
+    function onMove(move) {
+      core.error.value = ''
 
-      if (this.analysisMode) {
-        return this.$t('game.analysisMode', { current: this.currentMoveIndex, total: this.moveHistory.length })
-      }
-
-      return this.$t('game.toMove', { color: currentColor })
-    },
-
-    currentPlayer() {
-      return this.chess.turn() === 'w' ? 'White' : 'Black'
-    },
-
-    isPlayerTurn() {
-      const userId = authService.getUserId()
-
-      // Extract current turn from FEN (reactive) instead of chess.turn() (non-reactive)
-      const fenParts = this.currentFen.split(' ')
-      const currentTurn = fenParts[1] || 'w'
-
-      if (!this.game || !userId) return false
-
-      // Don't allow moves if game is not in progress
-      // gameResult: 0=WaitJoin, 1=InProgress, 2+=GameOver
-      if (this.game.gameResult !== 1) return false
-
-      // Don't allow moves if second player hasn't joined yet
-      // Check for empty GUID or falsy value
-      const emptyGuid = '00000000-0000-0000-0000-000000000000'
-      if (!this.game.blackPlayerId || this.game.blackPlayerId === emptyGuid) return false
-
-      const isWhite = this.game.whitePlayerId === userId
-
-      return (isWhite && currentTurn === 'w') || (!isWhite && currentTurn === 'b')
-    },
-
-    translatedConnectionStatus() {
-      const statusMap = {
-        'Connected': this.$t('game.connected'),
-        'Disconnected': this.$t('game.disconnected'),
-        'Connecting': this.$t('game.connecting'),
-        'Reconnecting': this.$t('game.reconnecting')
-      }
-      return statusMap[this.connectionStatus] || this.connectionStatus
-    },
-
-    connectionStatusClass() {
-      return {
-        'status-connected': this.connectionStatus === 'Connected',
-        'status-connecting': this.connectionStatus === 'Connecting' || this.connectionStatus === 'Reconnecting',
-        'status-disconnected': this.connectionStatus === 'Disconnected'
-      }
-    },
-
-    hasTimeControl() {
-      return this.game && this.game.timeControl !== 0
-    },
-
-    gameResult() {
-      return this.game?.gameResult || 0
-    },
-
-    blackPlayerLabel() {
-      // Check if black player is a bot (special GUID)
-      const botPlayerId = '00000000-0000-0000-0000-000000000001'
-      if (this.game?.blackPlayerId === botPlayerId) {
-        return this.$t('game.bot')
-      }
-      return this.game?.blackPlayerUsername || this.$t('game.waiting')
-    },
-
-    whitePlayerLabel() {
-      // Check if white player is a bot (special GUID)
-      const botPlayerId = '00000000-0000-0000-0000-000000000001'
-      if (this.game?.whitePlayerId === botPlayerId) {
-        return this.$t('game.bot')
-      }
-      return this.game?.whitePlayerUsername || this.$t('game.white')
-    },
-
-    // Game over detection
-    isGameOver() {
-      // GameResult: 0=WaitJoin, 1=InProgress, 2=WhiteWins, 3=BlackWins, 4=Draw
-      return this.gameResult >= 2 || this.chess.isGameOver()
-    },
-
-    gameOverMessage() {
-      if (this.chess.isCheckmate()) {
-        return this.chess.turn() === 'w' ? this.$t('game.blackWinsByCheckmate') : this.$t('game.blackWinsByCheckmate')
-      }
-      if (this.chess.isStalemate()) {
-        return this.$t('game.drawByStalemate')
-      }
-      if (this.chess.isThreefoldRepetition()) {
-        return this.$t('game.drawByRepetition')
-      }
-      if (this.chess.isInsufficientMaterial()) {
-        return this.$t('game.drawByInsufficientMaterial')
-      }
-      if (this.chess.isDraw()) {
-        return this.$t('game.draw')
-      }
-
-      // From backend game result
-      switch (this.gameResult) {
-        case 2: return this.$t('game.whiteWins')
-        case 3: return this.$t('game.blackWins')
-        case 4: return this.$t('game.draw')
-        default: return this.$t('game.gameOver')
-      }
-    },
-
-    gameOverIcon() {
-      if (this.chess.isCheckmate()) {
-        return this.chess.turn() === 'w' ? '♚' : '♔'
-      }
-      if (this.gameResult === 2) return '♔'
-      if (this.gameResult === 3) return '♚'
-      if (this.gameResult === 4 || this.chess.isDraw()) return '½'
-      return '🏁'
-    },
-
-    // Navigation computed properties
-    canGoBack() {
-      return this.currentMoveIndex > 0
-    },
-
-    canGoForward() {
-      // Can only go forward if not in variation and not at end
-      if (this.isInVariation) {
-        return false
-      }
-      return this.currentMoveIndex < this.moveHistory.length
-    }
-  },
-
-  async mounted() {
-    console.log('GameView mounted, gameId:', this.gameId)
-    await this.initializeGame()
-    console.log('GameView initializeGame done, game:', this.game?.gameResult)
-    await this.setupRealtimeConnection()
-    this.startTimer()
-    // Add keyboard navigation support
-    window.addEventListener('keydown', this.handleKeyPress)
-    // Expose functions for Android bridge
-    this.setupAndroidBridge()
-  },
-
-  async unmounted() {
-    await this.cleanupRealtimeConnection()
-    this.stopTimer()
-    // Remove keyboard navigation support
-    window.removeEventListener('keydown', this.handleKeyPress)
-  },
-
-  watch: {
-    currentFen(newFen) {
-      if (this.boardAPI) {
-        this.boardAPI.setPosition(newFen)
-
-        // Also update movable configuration to reflect new turn
-        // Use underlying chessground API
-        const config = this.boardConfig
-        if (this.boardAPI.board && this.boardAPI.board.set) {
-          this.boardAPI.board.set({
-            movable: config.movable
-          })
-        }
-      }
-    },
-    // Update board when game data changes (e.g., after loading or when player joins)
-    'game.gameResult'() {
-      if (this.boardAPI && this.boardAPI.board && this.boardAPI.board.set) {
-        const config = this.boardConfig
-        this.boardAPI.board.set({
-          movable: config.movable
-        })
-      }
-    },
-    'game.blackPlayerId'() {
-      if (this.boardAPI && this.boardAPI.board && this.boardAPI.board.set) {
-        const config = this.boardConfig
-        this.boardAPI.board.set({
-          movable: config.movable
-        })
-      }
-    }
-  },
-
-  methods: {
-    onBoardCreated(api) {
-      this.boardAPI = markRaw(api)
-    },
-    async initializeGame() {
-      try {
-        const result = await gameService.getGameById(this.gameId)
-
-        if (result.success && result.game) {
-          this.game = result.game
-
-          const fenToLoad = result.game.currentFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-
-          this.chess.load(fenToLoad)
-          this.currentFen = fenToLoad
-
-          // Build FEN history from moves
-          this.fenHistory = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']
-          const tempChess = new Chess()
-
-          if (result.game.moves && result.game.moves.length > 0) {
-            // Build FEN history and convert moves to SAN
-            this.moveHistory = []
-            for (const m of result.game.moves) {
-              let san = m.move
-              // Try to replay the move to get proper SAN
-              try {
-                // Try SAN first
-                const chessMove = tempChess.move(m.move)
-                san = chessMove.san
-                this.fenHistory.push(tempChess.fen())
-              } catch {
-                try {
-                  // Try UCI format (e.g. "e2e4")
-                  if (m.move.length >= 4) {
-                    const from = m.move.substring(0, 2)
-                    const to = m.move.substring(2, 4)
-                    const promotion = m.move.length > 4 ? m.move[4] : undefined
-                    const chessMove = tempChess.move({ from, to, promotion })
-                    san = chessMove.san
-                    this.fenHistory.push(tempChess.fen())
-                  }
-                } catch {
-                  // Both failed — use resultFen from backend to stay in sync
-                  if (m.resultFen) {
-                    tempChess.load(m.resultFen)
-                    this.fenHistory.push(m.resultFen)
-                  }
-                }
-              }
-              this.moveHistory.push(san)
-            }
-          }
-
-          // Set current move index to end
-          this.currentMoveIndex = this.moveHistory.length
-
-          this.whiteTimeRemaining = result.game.whiteTimeRemainingSeconds || 0
-          this.blackTimeRemaining = result.game.blackTimeRemainingSeconds || 0
-
-          console.log('Game loaded:', this.game)
-        } else {
-          this.chess.reset()
-          this.currentFen = this.chess.fen()
-          this.fenHistory = [this.currentFen]
-          console.warn('Failed to load game, starting with initial position')
-        }
-
-        this.loading = false
-      } catch (error) {
-        this.error = this.$t('game.failedToInitializeGame')
-        console.error('Game initialization error:', error)
-
-        this.chess.reset()
-        this.currentFen = this.chess.fen()
-        this.fenHistory = [this.currentFen]
-        this.loading = false
-      }
-    },
-
-    async setupRealtimeConnection() {
-      try {
-        console.log('Setting up real-time connection for game:', this.gameId)
-
-        await gameConnectionService.connect()
-        this.connectionStatus = gameConnectionService.getConnectionState()
-
-        await gameConnectionService.joinGame(this.gameId)
-
-        gameConnectionService.on('moveReceived', this.handleMoveReceived)
-        gameConnectionService.on('gameStateChanged', this.handleGameStateChanged)
-        gameConnectionService.on('playerJoined', this.handlePlayerJoined)
-        gameConnectionService.on('playerLeft', this.handlePlayerLeft)
-
-        console.log('Real-time connection established')
-      } catch (error) {
-        console.error('Failed to setup real-time connection:', error)
-        this.error = this.$t('game.failedToConnectToServer')
-      }
-    },
-
-    async cleanupRealtimeConnection() {
-      try {
-        console.log('Cleaning up real-time connection')
-
-        gameConnectionService.off('moveReceived', this.handleMoveReceived)
-        gameConnectionService.off('gameStateChanged', this.handleGameStateChanged)
-        gameConnectionService.off('playerJoined', this.handlePlayerJoined)
-        gameConnectionService.off('playerLeft', this.handlePlayerLeft)
-
-        if (this.gameId) {
-          await gameConnectionService.leaveGame(this.gameId)
-        }
-
-        console.log('Real-time connection cleaned up')
-      } catch (error) {
-        console.error('Error cleaning up connection:', error)
-      }
-    },
-
-    handleMoveReceived(data) {
-      console.log('Received move from server:', data)
-
-      const currentUserId = authService.getUserId()
-
-      if (data.whiteTimeRemainingSeconds !== undefined) {
-        this.whiteTimeRemaining = data.whiteTimeRemainingSeconds
-      }
-      if (data.blackTimeRemainingSeconds !== undefined) {
-        this.blackTimeRemaining = data.blackTimeRemainingSeconds
-      }
-
-      if (data.userId === currentUserId) {
+      if (!analysis.analysisMode.value && !board.isPlayerTurn.value) {
+        core.error.value = t('game.notYourTurn')
         return
       }
 
       try {
-        if (data.newFen) {
-          this.chess.load(data.newFen)
-
-          if (data.move) {
-            this.moveHistory.push(data.move)
-            this.fenHistory.push(data.newFen)
-            this.currentMoveIndex = this.moveHistory.length
-          }
-        } else if (data.move) {
-          const move = this.chess.move(data.move)
-          if (move) {
-            this.moveHistory.push(move.san)
-            this.fenHistory.push(this.chess.fen())
-            this.currentMoveIndex = this.moveHistory.length
-          }
-        }
-
-        this.currentFen = this.chess.fen()
-      } catch (error) {
-        console.error('Error applying received move:', error)
-        this.error = this.$t('game.failedToApplyMove')
-      }
-    },
-
-    handleGameStateChanged(data) {
-      console.log('Game state changed:', data)
-
-      // Update game result when game ends
-      if (data.gameResult !== undefined && this.game) {
-        this.game.gameResult = data.gameResult
-
-        // Stop timer when game ends
-        if (data.gameResult >= 2) {
-          this.stopTimer()
-        }
-      }
-    },
-
-    handlePlayerJoined(data) {
-      console.log('Player joined:', data)
-      // Only update game state if the game is still waiting for a player (WaitJoin)
-      if (this.game && this.game.gameResult === 0) {
-        this.game.blackPlayerId = data.playerId
-        this.game.blackPlayerUsername = data.username || 'Player'
-        this.game.gameResult = 1 // Set to InProgress
-        console.log('Game started - gameResult set to InProgress')
-      }
-    },
-
-    handlePlayerLeft(data) {
-      console.log('Player left:', data)
-    },
-
-    onMove(move) {
-      this.error = ''
-
-      // Don't allow moves if it's not the player's turn (safety check)
-      if (!this.analysisMode && !this.isPlayerTurn) {
-        this.error = this.$t('game.notYourTurn')
-        return
-      }
-
-      try {
-        const chessMove = this.chess.move({
+        const chessMove = core.chess.move({
           from: move.from,
           to: move.to,
           promotion: 'q'
         })
 
         if (chessMove === null) {
-          this.error = this.$t('game.invalidMove')
+          core.error.value = t('game.invalidMove')
           return
         }
 
-        // If in analysis mode
-        if (this.analysisMode) {
-          // If not in variation and not at end of game, start variation
-          if (!this.isInVariation && this.currentMoveIndex < this.moveHistory.length) {
-            this.startVariation()
-          } else if (!this.isInVariation && this.currentMoveIndex === this.moveHistory.length) {
-            // At end of game moves, start variation
-            this.startVariation()
+        if (analysis.analysisMode.value) {
+          if (!navigation.isInVariation.value) {
+            navigation.startVariation()
           }
 
-          // Add move to current history
-          this.moveHistory.push(chessMove.san)
-          this.fenHistory.push(this.chess.fen())
-          this.currentMoveIndex = this.moveHistory.length
-          this.currentFen = this.chess.fen()
+          core.moveHistory.value.push(chessMove.san)
+          core.fenHistory.value.push(core.chess.fen())
+          navigation.currentMoveIndex.value = core.moveHistory.value.length
+          core.currentFen.value = core.chess.fen()
 
-          // Analyze new position
-          this.analyzeCurrentPosition()
+          analysis.analyzeCurrentPosition()
           return
         }
 
         // Normal game mode
-        this.moveHistory.push(chessMove.san)
-        this.fenHistory.push(this.chess.fen())
-        this.currentMoveIndex = this.moveHistory.length
-        this.currentFen = this.chess.fen()
+        core.moveHistory.value.push(chessMove.san)
+        core.fenHistory.value.push(core.chess.fen())
+        navigation.currentMoveIndex.value = core.moveHistory.value.length
+        core.currentFen.value = core.chess.fen()
 
-        // Check for game end conditions
         const gameEndInfo = {
-          isCheckmate: this.chess.isCheckmate(),
-          isStalemate: this.chess.isStalemate(),
-          isDraw: this.chess.isDraw() && !this.chess.isStalemate()
+          isCheckmate: core.chess.isCheckmate(),
+          isStalemate: core.chess.isStalemate(),
+          isDraw: core.chess.isDraw() && !core.chess.isStalemate()
         }
 
-        // Send move to backend
         gameService.makeMove(
-          this.gameId,
+          props.gameId,
           chessMove.san,
-          this.chess.fen(),
+          core.chess.fen(),
           gameEndInfo
         ).then(result => {
           if (!result.success) {
-            this.chess.undo()
-            this.moveHistory.pop()
-            this.fenHistory.pop()
-            this.currentMoveIndex = this.moveHistory.length
-            this.currentFen = this.chess.fen()
-            this.error = result.error
+            core.chess.undo()
+            core.moveHistory.value.pop()
+            core.fenHistory.value.pop()
+            navigation.currentMoveIndex.value = core.moveHistory.value.length
+            core.currentFen.value = core.chess.fen()
+            core.error.value = result.error
           }
-        }).catch(error => {
-          console.error('Backend error:', error)
-          this.error = this.$t('game.failedToMakeMove')
+        }).catch(err => {
+          console.error('Backend error:', err)
+          core.error.value = t('game.failedToMakeMove')
         })
-      } catch (error) {
-        console.error('Move error:', error)
-        this.error = this.$t('game.failedToMakeMove')
+      } catch (err) {
+        console.error('Move error:', err)
+        core.error.value = t('game.failedToMakeMove')
       }
-    },
+    }
 
-    // Analysis mode methods
-    toggleAnalysisMode() {
-      this.analysisMode = !this.analysisMode
+    // --- playMove wrapper for analysis ---
+    function playMove(uciMove) {
+      analysis.playMove(uciMove, onMove)
+    }
 
-      if (this.analysisMode) {
-        // Enter analysis mode at current position
-        this.analyzeCurrentPosition()
-      } else {
-        // Exit analysis mode - reset to game state
-        if (this.analysisAbortController) {
-          this.analysisAbortController.aborted = true
-        }
-        this.exitVariation()
-        this.topMoves = []
-        this.currentEvaluation = { score: 0, isMate: false, mateIn: null }
-        this.currentAnalysisDepth = 0
-      }
-    },
-
-    async analyzeCurrentPosition() {
-      if (!this.analysisMode) return
-
-      // Cancel any ongoing analysis
-      if (this.analysisAbortController) {
-        this.analysisAbortController.aborted = true
-      }
-      this.analysisAbortController = {
-        aborted: false,
-        abort: function() { this.aborted = true }
-      }
-      const currentAbortController = this.analysisAbortController
-
-      this.analyzing = true
-      const currentFen = this.chess.fen()
-
-      // Progressive analysis depths: quick → medium → deep
-      const depths = [12, 18, 22]
-
-      try {
-        for (const depth of depths) {
-          // Check if analysis was cancelled or position changed
-          if (currentAbortController.aborted || this.chess.fen() !== currentFen) {
-            break
-          }
-
-          this.currentAnalysisDepth = depth
-
-          const result = await gameService.analyzeMultiPv(currentFen, depth, 3)
-
-          // Check again after async operation
-          if (currentAbortController.aborted || this.chess.fen() !== currentFen) {
-            break
-          }
-
-          if (result.success && result.lines) {
-            this.topMoves = result.lines.map(line => ({
-              ...line,
-              moveSan: this.convertUciToSan(line.move)
-            }))
-
-            // Set current evaluation from best line
-            if (this.topMoves.length > 0) {
-              const bestLine = this.topMoves[0]
-              this.currentEvaluation = {
-                score: bestLine.score,
-                isMate: bestLine.isMate,
-                mateIn: bestLine.mateIn
-              }
-            }
-          }
-
-          // Small delay between depths to allow UI updates
-          if (depth < depths[depths.length - 1]) {
-            await new Promise(resolve => setTimeout(resolve, 50))
-          }
-        }
-      } catch (error) {
-        console.error('Analysis error:', error)
-      } finally {
-        // Only stop analyzing if this is still the current analysis
-        if (currentAbortController === this.analysisAbortController) {
-          this.analyzing = false
-        }
-      }
-    },
-
-    convertUciToSan(uciMove) {
-      if (!uciMove || uciMove.length < 4) return uciMove
-
-      try {
-        // Create a temporary chess instance to convert UCI to SAN
-        const tempChess = new Chess(this.chess.fen())
-        const from = uciMove.substring(0, 2)
-        const to = uciMove.substring(2, 4)
-        const promotion = uciMove.length > 4 ? uciMove[4] : undefined
-
-        const move = tempChess.move({ from, to, promotion })
-        return move ? move.san : uciMove
-      } catch {
-        return uciMove
-      }
-    },
-
-    playMove(uciMove) {
-      if (!uciMove || uciMove.length < 4) return
-
-      const from = uciMove.substring(0, 2)
-      const to = uciMove.substring(2, 4)
-      const promotion = uciMove.length > 4 ? uciMove[4] : 'q'
-
-      // Simulate the move
-      this.onMove({ from, to, promotion })
-    },
-
-    // Navigation methods
-    handleKeyPress(event) {
-      // Ignore if user is typing in an input field
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
-
-      // Only handle if there are moves to navigate
-      if (this.moveHistory.length === 0) return
-
-      switch (event.key) {
-        case 'ArrowLeft':
-          event.preventDefault()
-          this.goBack()
-          break
-        case 'ArrowRight':
-          event.preventDefault()
-          this.goForward()
-          break
-        case 'Home':
-          event.preventDefault()
-          this.goToStart()
-          break
-        case 'End':
-          event.preventDefault()
-          this.goToEnd()
-          break
-      }
-    },
-
-    goToStart() {
-      if (this.isInVariation) {
-        this.exitVariation()
-      }
-      this.goToMove(0)
-    },
-
-    goBack() {
-      if (this.currentMoveIndex > 0) {
-        this.goToMove(this.currentMoveIndex - 1)
-      }
-    },
-
-    goForward() {
-      if (this.canGoForward) {
-        this.goToMove(this.currentMoveIndex + 1)
-      }
-    },
-
-    goToEnd() {
-      if (this.isInVariation) {
-        this.exitVariation()
-      }
-      this.goToMove(this.moveHistory.length)
-    },
-
-    goToMove(index) {
-      if (index < 0 || index > this.fenHistory.length - 1) return
-
-      // If going back while in variation, check if we're going back to game position
-      if (this.isInVariation && index <= this.savedMoveIndex) {
-        // Exit variation if going back to or before variation start
-        this.exitVariation()
-        this.goToMove(index)
-        return
-      }
-
-      this.currentMoveIndex = index
-      this.currentFen = this.fenHistory[index]
-      this.chess.load(this.currentFen)
-
-      // Analyze new position
-      if (this.analysisMode) {
-        this.analyzeCurrentPosition()
-      }
-    },
-
-    // Variation methods
-    startVariation() {
-      if (this.isInVariation) return
-
-      this.isInVariation = true
-      this.variationStartIndex = this.currentMoveIndex
-      this.savedMoveHistory = [...this.moveHistory]
-      this.savedFenHistory = [...this.fenHistory]
-      this.savedMoveIndex = this.currentMoveIndex
-
-      // Truncate history to current position for variation
-      this.moveHistory = this.moveHistory.slice(0, this.currentMoveIndex)
-      this.fenHistory = this.fenHistory.slice(0, this.currentMoveIndex + 1)
-    },
-
-    exitVariation() {
-      if (!this.isInVariation) return
-
-      // Restore original game history
-      this.moveHistory = this.savedMoveHistory
-      this.fenHistory = this.savedFenHistory
-      this.currentMoveIndex = this.savedMoveIndex
-      this.currentFen = this.fenHistory[this.currentMoveIndex]
-      this.chess.load(this.currentFen)
-
-      this.isInVariation = false
-      this.variationStartIndex = 0
-      this.savedMoveHistory = []
-      this.savedFenHistory = []
-      this.savedMoveIndex = 0
-
-      if (this.analysisMode) {
-        this.analyzeCurrentPosition()
-      }
-    },
-
-    // Evaluation formatting
-    formatEval(line) {
-      if (line.isMate) {
-        return `M${line.mateIn}`
-      }
-      const pawns = line.score / 100
-      const sign = pawns >= 0 ? '+' : ''
-      return sign + pawns.toFixed(1)
-    },
-
-    // Android bridge methods
-    setupAndroidBridge() {
-      // Expose methods for Android WebView
-      window.isInAnalysisMode = () => this.analysisMode
+    // --- Android bridge ---
+    function setupAndroidBridge() {
+      window.isInAnalysisMode = () => analysis.analysisMode.value
       window.exitAnalysisMode = () => {
-        if (this.analysisMode) {
-          this.toggleAnalysisMode()
+        if (analysis.analysisMode.value) {
+          analysis.toggleAnalysisMode()
           return true
         }
         return false
       }
-    },
+    }
 
-    getEvalClass(line) {
-      if (line.isMate) {
-        return line.mateIn > 0 ? 'eval-winning' : 'eval-losing'
-      }
-      if (line.score > 100) return 'eval-winning'
-      if (line.score < -100) return 'eval-losing'
-      return 'eval-equal'
-    },
+    // --- goBackToGames ---
+    function goBackToGames() {
+      instance.proxy.$router.push('/games')
+    }
 
-    goBackToGames() {
-      this.$router.push('/games')
-    },
+    // --- Lifecycle ---
+    onMounted(async () => {
+      console.log('GameView mounted, gameId:', props.gameId)
+      await core.initializeGame()
 
-    startTimer() {
-      this.timerInterval = setInterval(() => {
-        // Only tick if time control is enabled and game is in progress (gameResult === 1)
-        // This ensures timer doesn't start until second player joins
-        if (this.hasTimeControl && this.gameResult === 1 && !this.analysisMode) {
-          if (this.chess.turn() === 'w') {
-            this.whiteTimeRemaining = Math.max(0, this.whiteTimeRemaining - 1)
-            if (this.whiteTimeRemaining === 0) {
-              this.error = 'White ran out of time! Black wins.'
-              this.stopTimer()
-            }
-          } else {
-            this.blackTimeRemaining = Math.max(0, this.blackTimeRemaining - 1)
-            if (this.blackTimeRemaining === 0) {
-              this.error = 'Black ran out of time! White wins.'
-              this.stopTimer()
-            }
-          }
-        }
-      }, 1000)
-    },
+      // After loading, sync navigation index and timer
+      navigation.currentMoveIndex.value = core.moveHistory.value.length
+      timer.setTimes(
+        core.game.value?.whiteTimeRemainingSeconds || 0,
+        core.game.value?.blackTimeRemainingSeconds || 0
+      )
 
-    stopTimer() {
-      if (this.timerInterval) {
-        clearInterval(this.timerInterval)
-        this.timerInterval = null
-      }
+      console.log('GameView initializeGame done, game:', core.game.value?.gameResult)
+      await connection.setupRealtimeConnection()
+      timer.startTimer(core.error)
+      setupAndroidBridge()
+    })
+
+    onUnmounted(async () => {
+      await connection.cleanupRealtimeConnection()
+      timer.stopTimer()
+    })
+
+    // Return everything the template needs (same property names)
+    return {
+      // Core
+      game: core.game,
+      chess: core.chess,
+      error: core.error,
+      loading: core.loading,
+      currentFen: core.currentFen,
+      moveHistory: core.moveHistory,
+      fenHistory: core.fenHistory,
+      gameResult: core.gameResult,
+      isGameOver: core.isGameOver,
+      hasTimeControl: core.hasTimeControl,
+      onBoardCreated: core.onBoardCreated,
+
+      // Timer
+      whiteTimeRemaining: timer.whiteTimeRemaining,
+      blackTimeRemaining: timer.blackTimeRemaining,
+
+      // Navigation
+      currentMoveIndex: navigation.currentMoveIndex,
+      isInVariation: navigation.isInVariation,
+      variationStartIndex: navigation.variationStartIndex,
+      canGoBack: navigation.canGoBack,
+      canGoForward: navigation.canGoForward,
+      goToMove: navigation.goToMove,
+      goToStart: navigation.goToStart,
+      goBack: navigation.goBack,
+      goForward: navigation.goForward,
+      goToEnd: navigation.goToEnd,
+      exitVariation: navigation.exitVariation,
+
+      // Analysis
+      analysisMode: analysis.analysisMode,
+      analyzing: analysis.analyzing,
+      topMoves: analysis.topMoves,
+      currentEvaluation: analysis.currentEvaluation,
+      currentAnalysisDepth: analysis.currentAnalysisDepth,
+      toggleAnalysisMode: analysis.toggleAnalysisMode,
+      formatEval: analysis.formatEval,
+      getEvalClass: analysis.getEvalClass,
+
+      // Board config
+      boardConfig: board.boardConfig,
+      isPlayerTurn: board.isPlayerTurn,
+      gameStatus: board.gameStatus,
+      currentPlayer: board.currentPlayer,
+      blackPlayerLabel: board.blackPlayerLabel,
+      whitePlayerLabel: board.whitePlayerLabel,
+      gameOverMessage: board.gameOverMessage,
+      gameOverIcon: board.gameOverIcon,
+
+      // Connection
+      connectionStatus: connection.connectionStatus,
+      translatedConnectionStatus: connection.translatedConnectionStatus,
+      connectionStatusClass: connection.connectionStatusClass,
+
+      // Orchestrators
+      onMove,
+      playMove,
+      goBackToGames
     }
   }
 }

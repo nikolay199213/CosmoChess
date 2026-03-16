@@ -39,7 +39,10 @@
       "Bash(python3:*)",
       "Bash(node:*)",
       "WebFetch(domain:qwerty084.github.io)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx vite build)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []
