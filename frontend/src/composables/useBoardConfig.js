@@ -159,30 +159,25 @@ export function useBoardConfig({ game, chess, currentFen, moveHistory, currentMo
   watch(currentFen, (newFen) => {
     if (boardAPI.value) {
       boardAPI.value.setPosition(newFen)
-
-      const config = boardConfig.value
-      if (boardAPI.value.board && boardAPI.value.board.set) {
-        boardAPI.value.board.set({
-          movable: config.movable
-        })
-      }
     }
   })
 
-  watch(() => game.value?.gameResult, () => {
+  // Single watcher on boardConfig — covers all dependency changes
+  // (currentFen, isPlayerTurn, currentMoveIndex, gameResult, blackPlayerId, analysisMode)
+  watch(boardConfig, (config) => {
     if (boardAPI.value && boardAPI.value.board && boardAPI.value.board.set) {
-      const config = boardConfig.value
       boardAPI.value.board.set({
         movable: config.movable
       })
     }
   })
 
-  watch(() => game.value?.blackPlayerId, () => {
-    if (boardAPI.value && boardAPI.value.board && boardAPI.value.board.set) {
-      const config = boardConfig.value
-      boardAPI.value.board.set({
-        movable: config.movable
+  // When the board API becomes available, apply the current config
+  watch(boardAPI, (api) => {
+    if (api && api.board && api.board.set) {
+      api.setPosition(currentFen.value)
+      api.board.set({
+        movable: boardConfig.value.movable
       })
     }
   })
