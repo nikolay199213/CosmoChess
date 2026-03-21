@@ -15,12 +15,22 @@ namespace CosmoChess.BotService.Services
             _logger = logger;
         }
 
-        public async Task<AnalysisResult> AnalyzeMultiPvAsync(string fen, int depth, int multiPv, CancellationToken cancellationToken = default)
+        public async Task<AnalysisResult> AnalyzeMultiPvAsync(string fen, int depth, int multiPv, CancellationToken cancellationToken = default, Guid? gameId = null)
         {
             try
             {
-                var request = new { fen, depth, multiPv };
-                var response = await _httpClient.PostAsJsonAsync("/analyze-multipv", request, cancellationToken);
+                var requestBody = new { fen, depth, multiPv };
+                var request = new HttpRequestMessage(HttpMethod.Post, "/analyze-multipv")
+                {
+                    Content = JsonContent.Create(requestBody)
+                };
+
+                if (gameId.HasValue)
+                {
+                    request.Headers.Add("X-Game-Id", gameId.Value.ToString());
+                }
+
+                var response = await _httpClient.SendAsync(request, cancellationToken);
 
                 response.EnsureSuccessStatusCode();
 

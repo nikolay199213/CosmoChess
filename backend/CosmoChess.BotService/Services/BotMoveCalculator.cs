@@ -14,7 +14,7 @@ namespace CosmoChess.BotService.Services
             _logger = logger;
         }
 
-        public async Task<string> GetBotMoveAsync(string fen, BotDifficulty difficulty, BotStyle style, CancellationToken cancellationToken = default)
+        public async Task<string> GetBotMoveAsync(string fen, BotDifficulty difficulty, BotStyle style, CancellationToken cancellationToken = default, Guid? gameId = null)
         {
             var depth = GetDepthForDifficulty(difficulty);
             var multiPv = GetMultiPvForDifficulty(difficulty);
@@ -24,7 +24,7 @@ namespace CosmoChess.BotService.Services
 
             try
             {
-                var analysis = await _engineClient.AnalyzeMultiPvAsync(fen, depth, multiPv, cancellationToken);
+                var analysis = await _engineClient.AnalyzeMultiPvAsync(fen, depth, multiPv, cancellationToken, gameId);
 
                 if (analysis.Lines == null || analysis.Lines.Count == 0)
                 {

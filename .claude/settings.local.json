@@ -42,7 +42,8 @@
       "WebFetch(domain:github.com)",
       "Bash(npx vue-tsc:*)",
       "Bash(npx vite build)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(dotnet build:*)"
     ],
     "deny": [],
     "ask": []

@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Serilog.Context;
 
 namespace CosmoChess.Api.Controllers
 {
@@ -88,6 +89,8 @@ namespace CosmoChess.Api.Controllers
         [HttpPost("move")]
         public async Task<IActionResult> Move([FromBody] MakeMoveDto dto)
         {
+            using (LogContext.PushProperty("GameId", dto.GameId))
+            {
             var command = new MakeMoveCommand(
                 dto.GameId,
                 dto.UserId,
@@ -177,6 +180,7 @@ namespace CosmoChess.Api.Controllers
             }
 
             return Ok();
+            }
         }
 
         [HttpPost("analyze")]

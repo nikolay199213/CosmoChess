@@ -5,6 +5,7 @@ using CosmoChess.Domain.Entities;
 using CosmoChess.Domain.Interface.Repositories;
 using CosmoChess.Infrastructure.Kafka.Models;
 using Microsoft.AspNetCore.SignalR;
+using Serilog.Context;
 
 namespace CosmoChess.Api.Services
 {
@@ -67,7 +68,10 @@ namespace CosmoChess.Api.Services
                             continue;
                         }
 
-                        await ProcessBotMoveResultAsync(result, stoppingToken);
+                        using (LogContext.PushProperty("GameId", result.GameId))
+                        {
+                            await ProcessBotMoveResultAsync(result, stoppingToken);
+                        }
 
                         _consumer.Commit(consumeResult);
                     }
@@ -117,7 +121,7 @@ namespace CosmoChess.Api.Services
                         gameId = result.GameId,
                         userId = Game.BotPlayerId,
                         move = result.Move,
-                        fen = result.NewFen,
+                        newFen = result.NewFen,
                         whiteTimeRemainingSeconds = game.WhiteTimeRemainingSeconds,
                         blackTimeRemainingSeconds = game.BlackTimeRemainingSeconds
                     },

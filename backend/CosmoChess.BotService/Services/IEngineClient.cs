@@ -4,6 +4,6 @@ namespace CosmoChess.BotService.Services
 {
     public interface IEngineClient
     {
-        Task<AnalysisResult> AnalyzeMultiPvAsync(string fen, int depth, int multiPv, CancellationToken cancellationToken = default);
+        Task<AnalysisResult> AnalyzeMultiPvAsync(string fen, int depth, int multiPv, CancellationToken cancellationToken = default, Guid? gameId = null);
     }
 }

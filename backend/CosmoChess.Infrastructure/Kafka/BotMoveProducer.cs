@@ -2,6 +2,7 @@ using System.Text.Json;
 using Confluent.Kafka;
 using CosmoChess.Infrastructure.Kafka.Models;
 using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
 namespace CosmoChess.Infrastructure.Kafka
 {
@@ -28,24 +29,27 @@ namespace CosmoChess.Infrastructure.Kafka
 
         public async Task PublishBotMoveRequestAsync(KafkaBotMoveRequest request, CancellationToken cancellationToken = default)
         {
-            try
+            using (LogContext.PushProperty("GameId", request.GameId))
             {
-                var json = JsonSerializer.Serialize(request);
-                var message = new Message<string, string>
+                try
                 {
-                    Key = request.GameId.ToString(),
-                    Value = json
-                };
+                    var json = JsonSerializer.Serialize(request);
+                    var message = new Message<string, string>
+                    {
+                        Key = request.GameId.ToString(),
+                        Value = json
+                    };
 
-                var result = await _producer.ProduceAsync(_topic, message, cancellationToken);
+                    var result = await _producer.ProduceAsync(_topic, message, cancellationToken);
 
-                _logger.LogInformation("Published bot move request for game {GameId} to partition {Partition} at offset {Offset}",
-                    request.GameId, result.Partition.Value, result.Offset.Value);
-            }
-            catch (ProduceException<string, string> ex)
-            {
-                _logger.LogError(ex, "Failed to publish bot move request for game {GameId}", request.GameId);
-                throw;
+                    _logger.LogInformation("Published bot move request for game {GameId} to partition {Partition} at offset {Offset}",
+                        request.GameId, result.Partition.Value, result.Offset.Value);
+                }
+                catch (ProduceException<string, string> ex)
+                {
+                    _logger.LogError(ex, "Failed to publish bot move request for game {GameId}", request.GameId);
+                    throw;
+                }
             }
         }
 

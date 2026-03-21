@@ -4,6 +4,7 @@ using Confluent.Kafka;
 using CosmoChess.BotService.Configuration;
 using CosmoChess.BotService.Models;
 using CosmoChess.BotService.Services;
+using Serilog.Context;
 
 namespace CosmoChess.BotService.Kafka
 {
@@ -65,20 +66,23 @@ namespace CosmoChess.BotService.Kafka
                             continue;
                         }
 
-                        // Process bot move
-                        var result = await ProcessBotMoveAsync(request, stoppingToken);
-
-                        // Produce result
-                        var resultJson = JsonSerializer.Serialize(result);
-                        var message = new Message<string, string>
+                        using (LogContext.PushProperty("GameId", request.GameId))
                         {
-                            Key = result.GameId.ToString(),
-                            Value = resultJson
-                        };
+                            // Process bot move
+                            var result = await ProcessBotMoveAsync(request, stoppingToken);
 
-                        await producer.ProduceAsync(_configuration.ResultTopic, message, stoppingToken);
-                        _logger.LogInformation("Published result for game {GameId}, move: {Move}",
-                            result.GameId, result.Move);
+                            // Produce result
+                            var resultJson = JsonSerializer.Serialize(result);
+                            var message = new Message<string, string>
+                            {
+                                Key = result.GameId.ToString(),
+                                Value = resultJson
+                            };
+
+                            await producer.ProduceAsync(_configuration.ResultTopic, message, stoppingToken);
+                            _logger.LogInformation("Published result for game {GameId}, move: {Move}",
+                                result.GameId, result.Move);
+                        }
 
                         // Commit offset
                         consumer.Commit(consumeResult);
@@ -116,7 +120,7 @@ namespace CosmoChess.BotService.Kafka
             await Task.Delay(delay, cancellationToken);
 
             // Get best move from bot calculator
-            var uciMove = await _botCalculator.GetBotMoveAsync(request.Fen, difficulty, style, cancellationToken);
+            var uciMove = await _botCalculator.GetBotMoveAsync(request.Fen, difficulty, style, cancellationToken, request.GameId);
 
             // Apply move using Gera.Chess to get new FEN and check game state
             var board = ChessBoard.LoadFromFen(request.Fen);

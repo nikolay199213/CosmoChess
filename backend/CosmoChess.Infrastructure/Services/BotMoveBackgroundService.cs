@@ -5,6 +5,7 @@ using CosmoChess.Infrastructure.Kafka.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
 namespace CosmoChess.Infrastructure.Services
 {
@@ -74,17 +75,20 @@ namespace CosmoChess.Infrastructure.Services
 
             await foreach (var (request, onComplete) in _channel.Reader.ReadAllAsync(stoppingToken))
             {
-                try
+                using (LogContext.PushProperty("GameId", request.GameId))
                 {
-                    await ProcessBotMoveAsync(request, stoppingToken);
+                    try
+                    {
+                        await ProcessBotMoveAsync(request, stoppingToken);
 
-                    // Note: onComplete callback is not called anymore
-                    // Results will be delivered via Kafka Consumer → SignalR
-                    _logger.LogInformation("Bot move request sent to Kafka for game {GameId}", request.GameId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error sending bot move request to Kafka for game {GameId}", request.GameId);
+                        // Note: onComplete callback is not called anymore
+                        // Results will be delivered via Kafka Consumer → SignalR
+                        _logger.LogInformation("Bot move request sent to Kafka for game {GameId}", request.GameId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error sending bot move request to Kafka for game {GameId}", request.GameId);
+                    }
                 }
             }
         }

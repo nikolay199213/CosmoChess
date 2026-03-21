@@ -73,6 +73,23 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
+// Extract X-Game-Id header into Serilog LogContext for cross-service correlation
+app.Use(async (context, next) =>
+{
+    var gameId = context.Request.Headers["X-Game-Id"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(gameId))
+    {
+        using (Serilog.Context.LogContext.PushProperty("GameId", gameId))
+        {
+            await next();
+        }
+    }
+    else
+    {
+        await next();
+    }
+});
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
