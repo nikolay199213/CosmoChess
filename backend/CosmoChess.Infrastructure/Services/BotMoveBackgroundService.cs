@@ -2,7 +2,6 @@ using System.Threading.Channels;
 using CosmoChess.Domain.Enums;
 using CosmoChess.Infrastructure.Kafka;
 using CosmoChess.Infrastructure.Kafka.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
@@ -33,56 +32,40 @@ namespace CosmoChess.Infrastructure.Services
 
     public interface IBotMoveService
     {
-        Task<BotMoveResult> RequestBotMoveAsync(BotMoveRequest request, CancellationToken cancellationToken = default);
-        void EnqueueBotMove(BotMoveRequest request, Action<BotMoveResult> onComplete);
+        void EnqueueBotMove(BotMoveRequest request);
     }
 
     public class BotMoveBackgroundService : BackgroundService, IBotMoveService
     {
-        private readonly Channel<(BotMoveRequest Request, Action<BotMoveResult> OnComplete)> _channel;
+        private readonly Channel<BotMoveRequest> _channel;
         private readonly BotMoveProducer _kafkaProducer;
-        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<BotMoveBackgroundService> _logger;
 
         public BotMoveBackgroundService(
             BotMoveProducer kafkaProducer,
-            IServiceScopeFactory scopeFactory,
             ILogger<BotMoveBackgroundService> logger)
         {
             _kafkaProducer = kafkaProducer;
-            _scopeFactory = scopeFactory;
             _logger = logger;
-            _channel = Channel.CreateUnbounded<(BotMoveRequest, Action<BotMoveResult>)>();
+            _channel = Channel.CreateUnbounded<BotMoveRequest>();
         }
 
-        public void EnqueueBotMove(BotMoveRequest request, Action<BotMoveResult> onComplete)
+        public void EnqueueBotMove(BotMoveRequest request)
         {
-            _channel.Writer.TryWrite((request, onComplete));
-        }
-
-        public async Task<BotMoveResult> RequestBotMoveAsync(BotMoveRequest request, CancellationToken cancellationToken = default)
-        {
-            var tcs = new TaskCompletionSource<BotMoveResult>();
-
-            EnqueueBotMove(request, result => tcs.SetResult(result));
-
-            return await tcs.Task;
+            _channel.Writer.TryWrite(request);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("BotMoveBackgroundService started (Kafka mode)");
 
-            await foreach (var (request, onComplete) in _channel.Reader.ReadAllAsync(stoppingToken))
+            await foreach (var request in _channel.Reader.ReadAllAsync(stoppingToken))
             {
                 using (LogContext.PushProperty("GameId", request.GameId))
                 {
                     try
                     {
                         await ProcessBotMoveAsync(request, stoppingToken);
-
-                        // Note: onComplete callback is not called anymore
-                        // Results will be delivered via Kafka Consumer → SignalR
                         _logger.LogInformation("Bot move request sent to Kafka for game {GameId}", request.GameId);
                     }
                     catch (Exception ex)
@@ -97,7 +80,6 @@ namespace CosmoChess.Infrastructure.Services
         {
             _logger.LogInformation("Sending bot move request to Kafka for game {GameId}", request.GameId);
 
-            // Convert domain request to Kafka message
             var kafkaRequest = new KafkaBotMoveRequest
             {
                 GameId = request.GameId,
@@ -107,10 +89,7 @@ namespace CosmoChess.Infrastructure.Services
                 Timestamp = DateTime.UtcNow
             };
 
-            // Send to Kafka (bot-service will process it)
             await _kafkaProducer.PublishBotMoveRequestAsync(kafkaRequest, cancellationToken);
-
-            _logger.LogInformation("Bot move request sent to Kafka for game {GameId}", request.GameId);
         }
     }
 }

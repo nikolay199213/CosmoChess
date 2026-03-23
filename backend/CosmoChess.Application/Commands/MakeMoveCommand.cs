@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using CosmoChess.Application.DTOs;
+using MediatR;
 
 namespace CosmoChess.Application.Commands
 {
@@ -10,6 +11,6 @@ namespace CosmoChess.Application.Commands
         bool IsCheckmate = false,
         bool IsStalemate = false,
         bool IsDraw = false
-    ) : IRequest<Unit>;
+    ) : IRequest<MakeMoveResult>;
 
 }

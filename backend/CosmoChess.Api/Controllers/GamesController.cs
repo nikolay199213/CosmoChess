@@ -20,8 +20,7 @@ namespace CosmoChess.Api.Controllers
         IMediator mediator,
         IHubContext<GameHub> hubContext,
         IUserRepository userRepository,
-        IBotMoveService botMoveService,
-        IGameRepository gameRepository) : ControllerBase
+        IBotMoveService botMoveService) : ControllerBase
     {
         [HttpGet("wait-join")]
         public async Task<List<Game>> GetGamesForJoin()
@@ -91,95 +90,49 @@ namespace CosmoChess.Api.Controllers
         {
             using (LogContext.PushProperty("GameId", dto.GameId))
             {
-            var command = new MakeMoveCommand(
-                dto.GameId,
-                dto.UserId,
-                dto.Move,
-                dto.NewFen,
-                dto.IsCheckmate,
-                dto.IsStalemate,
-                dto.IsDraw
-            );
+                var command = new MakeMoveCommand(
+                    dto.GameId, dto.UserId, dto.Move, dto.NewFen,
+                    dto.IsCheckmate, dto.IsStalemate, dto.IsDraw);
 
-            await mediator.Send(command);
+                var result = await mediator.Send(command);
 
-            // Get updated game state with timers
-            var game = await mediator.Send(new GetGameByIdQuery(dto.GameId));
-
-            // Notify all players in the game room about the move
-            var gameGroupName = $"game_{dto.GameId}";
-            await hubContext.Clients.Group(gameGroupName).SendAsync(
-                "MoveReceived",
-                new
-                {
-                    gameId = dto.GameId,
-                    userId = dto.UserId,
-                    move = dto.Move,
-                    newFen = dto.NewFen,
-                    whiteTimeRemainingSeconds = game?.WhiteTimeRemainingSeconds ?? 0,
-                    blackTimeRemainingSeconds = game?.BlackTimeRemainingSeconds ?? 0
-                });
-
-            // Notify about game state change if game ended
-            if (game != null && (int)game.GameResult >= 2)
-            {
+                var gameGroupName = $"game_{dto.GameId}";
                 await hubContext.Clients.Group(gameGroupName).SendAsync(
-                    "GameStateChanged",
+                    "MoveReceived",
                     new
                     {
                         gameId = dto.GameId,
-                        gameResult = (int)game.GameResult,
-                        endReason = (int)game.EndReason
+                        userId = dto.UserId,
+                        move = dto.Move,
+                        newFen = dto.NewFen,
+                        whiteTimeRemainingSeconds = result.WhiteTimeRemainingSeconds,
+                        blackTimeRemainingSeconds = result.BlackTimeRemainingSeconds
                     });
-            }
 
-            // If it's a bot game and game is still in progress, trigger bot move
-            if (game != null && game.GameType == GameType.HumanVsBot && (int)game.GameResult < 2)
-            {
-                var gameEntity = await gameRepository.GetById(dto.GameId, CancellationToken.None);
-                if (gameEntity.IsBotTurn() && gameEntity.BotDifficulty.HasValue)
+                if (result.GameEnded)
                 {
-                    var botRequest = new BotMoveRequest
+                    await hubContext.Clients.Group(gameGroupName).SendAsync(
+                        "GameStateChanged",
+                        new
+                        {
+                            gameId = dto.GameId,
+                            gameResult = (int)result.GameResult,
+                            endReason = (int)result.EndReason
+                        });
+                }
+
+                if (result.GameType == GameType.HumanVsBot && !result.GameEnded && result.IsBotTurn && result.BotDifficulty.HasValue)
+                {
+                    botMoveService.EnqueueBotMove(new BotMoveRequest
                     {
                         GameId = dto.GameId,
-                        CurrentFen = dto.NewFen,
-                        Difficulty = gameEntity.BotDifficulty.Value,
-                        Style = gameEntity.BotStyle ?? BotStyle.Balanced
-                    };
-
-                    // Process bot move asynchronously
-                    botMoveService.EnqueueBotMove(botRequest, async result =>
-                    {
-                        // Send bot move to clients
-                        await hubContext.Clients.Group(gameGroupName).SendAsync(
-                            "MoveReceived",
-                            new
-                            {
-                                gameId = result.GameId,
-                                userId = Game.BotPlayerId,
-                                move = result.Move,
-                                newFen = result.NewFen,
-                                whiteTimeRemainingSeconds = result.WhiteTimeRemainingSeconds,
-                                blackTimeRemainingSeconds = result.BlackTimeRemainingSeconds
-                            });
-
-                        // Notify about game state change if game ended
-                        if (result.GameResult.HasValue)
-                        {
-                            await hubContext.Clients.Group(gameGroupName).SendAsync(
-                                "GameStateChanged",
-                                new
-                                {
-                                    gameId = result.GameId,
-                                    gameResult = (int)result.GameResult.Value,
-                                    endReason = (int)(result.EndReason ?? GameEndReason.None)
-                                });
-                        }
+                        CurrentFen = result.CurrentFen,
+                        Difficulty = result.BotDifficulty.Value,
+                        Style = result.BotStyle ?? BotStyle.Balanced
                     });
                 }
-            }
 
-            return Ok();
+                return Ok();
             }
         }
 
