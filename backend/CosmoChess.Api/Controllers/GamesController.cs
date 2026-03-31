@@ -3,7 +3,6 @@ using CosmoChess.Application.Commands;
 using CosmoChess.Domain.Entities;
 using CosmoChess.Domain.Enums;
 using CosmoChess.Domain.Interface.Repositories;
-using CosmoChess.Infrastructure.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,8 +18,7 @@ namespace CosmoChess.Api.Controllers
     public class GamesController(
         IMediator mediator,
         IHubContext<GameHub> hubContext,
-        IUserRepository userRepository,
-        IBotMoveService botMoveService) : ControllerBase
+        IUserRepository userRepository) : ControllerBase
     {
         [HttpGet("wait-join")]
         public async Task<List<Game>> GetGamesForJoin()
@@ -120,18 +118,7 @@ namespace CosmoChess.Api.Controllers
                             endReason = (int)result.EndReason
                         });
                 }
-
-                if (result.GameType == GameType.HumanVsBot && !result.GameEnded && result.IsBotTurn && result.BotDifficulty.HasValue)
-                {
-                    botMoveService.EnqueueBotMove(new BotMoveRequest
-                    {
-                        GameId = dto.GameId,
-                        CurrentFen = result.CurrentFen,
-                        Difficulty = result.BotDifficulty.Value,
-                        Style = result.BotStyle ?? BotStyle.Balanced
-                    });
-                }
-
+                
                 return Ok();
             }
         }

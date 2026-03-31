@@ -93,10 +93,9 @@ builder.Services.AddSingleton(sp =>
 });
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMoveResultConsumer>());
 
-// Bot services (modified to use Kafka)
-builder.Services.AddSingleton<BotMoveBackgroundService>();
-builder.Services.AddSingleton<IBotMoveService>(sp => sp.GetRequiredService<BotMoveBackgroundService>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BotMoveBackgroundService>());
+// Outbox pattern
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddHostedService<OutboxProcessor>();
 
 builder.Services.AddSwaggerGen(c =>
 {
