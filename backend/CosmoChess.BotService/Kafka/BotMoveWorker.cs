@@ -158,6 +158,7 @@ namespace CosmoChess.BotService.Kafka
                 GameId = request.GameId,
                 Move = uciMove,
                 NewFen = newFen,
+                RequestFen = request.Fen,
                 IsCheckmate = isCheckmate,
                 IsStalemate = isStalemate,
                 IsDraw = isDraw,

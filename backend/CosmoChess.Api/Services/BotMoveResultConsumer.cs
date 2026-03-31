@@ -107,6 +107,17 @@ namespace CosmoChess.Api.Services
                 var repository = scope.ServiceProvider.GetRequiredService<IGameRepository>();
 
                 var game = await repository.GetById(result.GameId, cancellationToken);
+
+                // Idempotency check: if the game's current FEN doesn't match the FEN
+                // the bot was asked to analyze, this is a stale/duplicate result — skip it.
+                if (!string.IsNullOrEmpty(result.RequestFen) && game.CurrentFen != result.RequestFen)
+                {
+                    _logger.LogWarning(
+                        "Stale bot move result for game {GameId}: expected FEN {Expected}, actual FEN {Actual}. Skipping.",
+                        result.GameId, result.RequestFen, game.CurrentFen);
+                    return;
+                }
+
                 game.MakeMove(Game.BotPlayerId, result.Move, result.NewFen, result.IsCheckmate, result.IsStalemate, result.IsDraw);
                 await repository.Update(game, cancellationToken);
 
